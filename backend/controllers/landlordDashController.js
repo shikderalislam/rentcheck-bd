@@ -39,7 +39,7 @@ async function ensureLandlordProfile(user) {
   return landlord;
 }
 
-async function uniquePropertySlug(name, area) {
+export async function uniquePropertySlug(name, area) {
   const base = slugify(`${area || ""}-${name}`, { lower: true, strict: true }) || "property";
   let slug = base;
   let n = 1;
@@ -62,7 +62,7 @@ const LISTING_FIELDS = [
   "rentDetails", "deposit", "availableFrom", "rentalPolicy", "contact",
 ];
 
-function applyListingFields(property, body) {
+export function applyListingFields(property, body) {
   const changed = [];
   for (const f of LISTING_FIELDS) {
     if (body[f] === undefined) continue;

@@ -6,12 +6,14 @@ import { setAutoTranslateLang, onTranslateBusy } from "./autoTranslate.js";
 // to the key itself, so a missing translation is never a blank.
 const DICT = {
   // nav / chrome
-  "nav.findHome": { bn: "বাসা খুঁজুন", en: "Find a home" },
+  "nav.findHome": { bn: "বাসা খুঁজুন", en: "Find a Home" },
+  "nav.listProperty": { bn: "বাসা লিস্ট করুন", en: "List Property" },
   "nav.areas": { bn: "এলাকা", en: "Areas" },
   "nav.landlords": { bn: "বাড়িওয়ালা", en: "Landlords" },
-  "nav.liveReports": { bn: "লাইভ রিপোর্ট", en: "Live reports" },
+  "nav.liveReports": { bn: "লাইভ রিপোর্ট", en: "Live Report" },
   "nav.shareExperience": { bn: "✎ অভিজ্ঞতা শেয়ার করুন", en: "✎ Share experience" },
   "nav.login": { bn: "লগইন", en: "Login" },
+  "nav.signup": { bn: "সাইন আপ", en: "Sign up" },
   "nav.logout": { bn: "লগ আউট", en: "Log out" },
   "nav.dashboard": { bn: "ড্যাশবোর্ড", en: "Dashboard" },
   "nav.support": { bn: "সাপোর্ট", en: "Support" },

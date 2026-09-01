@@ -26,7 +26,7 @@ const POLICY_BOOL = [
 
 const num = (v) => (v === "" || v === null || v === undefined ? undefined : Number(v));
 
-export default function PropertyForm({ initial, onDone, onCancel }) {
+export default function PropertyForm({ initial, onDone, onCancel, submitUrl = "/landlord/properties", publicMode = false }) {
   const editing = !!initial;
   const [f, setF] = useState(() => ({
     name: initial?.name || "",
@@ -103,6 +103,7 @@ export default function PropertyForm({ initial, onDone, onCancel }) {
     if (!f.name.trim()) return setErr("Property name is required");
     if (!f.address.division || !f.address.area) return setErr("Division and area are required");
     if (!num(f.rentDetails.monthly)) return setErr("Monthly rent is required");
+    if (publicMode && !f.contact.phone.trim()) return setErr("A contact phone number is required for public listings");
 
     const payload = {
       name: f.name.trim(),
@@ -132,7 +133,7 @@ export default function PropertyForm({ initial, onDone, onCancel }) {
     setSaving(true);
     try {
       if (editing) await api.patch(`/landlord/properties/${initial.id}`, payload);
-      else await api.post("/landlord/properties", payload);
+      else await api.post(submitUrl, payload);
       onDone();
     } catch (e2) {
       setErr(e2.response?.data?.message || "Save failed");
@@ -156,11 +157,13 @@ export default function PropertyForm({ initial, onDone, onCancel }) {
               {TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </L>
-          <L label="Status">
-            <select className="input" value={f.listingStatus} onChange={(e) => set("listingStatus", e.target.value)}>
-              {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-            </select>
-          </L>
+          {!publicMode && (
+            <L label="Status">
+              <select className="input" value={f.listingStatus} onChange={(e) => set("listingStatus", e.target.value)}>
+                {STATUSES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              </select>
+            </L>
+          )}
         </div>
         <L label="Short description"><textarea className="input min-h-[70px]" value={f.description} onChange={(e) => set("description", e.target.value)} /></L>
       </Card>

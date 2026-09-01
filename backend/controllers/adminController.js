@@ -703,3 +703,111 @@ export const getAuditLog = asyncHandler(async (req, res) => {
     pagination: { total, page: Number(page), limit: lim, pages: Math.ceil(total / lim) },
   });
 });
+
+// ---------------- Properties (listings) management ----------------
+
+// @route GET /api/admin/properties?q=&status=&verified=&page=&limit=
+export const listAdminProperties = asyncHandler(async (req, res) => {
+  const { q, status, verified, page = 1, limit = 20 } = req.query;
+  const filter = { isDeleted: false };
+  if (status) filter.listingStatus = status;
+  if (verified === "true") filter.isVerified = true;
+  if (verified === "false") filter.isVerified = false;
+  if (q) {
+    const rx = new RegExp(escapeRegex(q.trim()), "i");
+    filter.$or = [{ name: rx }, { "address.area": rx }, { "address.city": rx }];
+  }
+  const lim = Math.min(Number(limit) || 20, 100);
+  const skip = (Math.max(Number(page), 1) - 1) * lim;
+  const [items, total] = await Promise.all([
+    Property.find(filter)
+      .select("+listedBy")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(lim)
+      .populate("landlord", "name slug isVerified")
+      .populate("listedBy", "displayName email"),
+    Property.countDocuments(filter),
+  ]);
+  res.json({
+    success: true,
+    properties: items.map((p) => {
+      const o = p.toObject();
+      return {
+        id: p._id,
+        name: o.name,
+        slug: o.slug,
+        propertyType: o.propertyType,
+        listingStatus: o.listingStatus,
+        isVerified: o.isVerified,
+        area: o.address?.area,
+        city: o.address?.city,
+        monthly: o.rentDetails?.monthly || o.rent?.min || 0,
+        landlord: o.landlord,
+        listedBy: o.listedBy || null, // null = anonymous public submission
+        contactPhone: o.contact?.phone || "",
+        createdAt: o.createdAt,
+      };
+    }),
+    pagination: { total, page: Number(page), limit: lim, pages: Math.ceil(total / lim) },
+  });
+});
+
+// @route PATCH /api/admin/properties/:id   Body: { isVerified?, listingStatus? }
+export const updateAdminProperty = asyncHandler(async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    res.status(404);
+    throw new Error("Property not found");
+  }
+  const property = await Property.findById(req.params.id);
+  if (!property || property.isDeleted) {
+    res.status(404);
+    throw new Error("Property not found");
+  }
+  const changed = [];
+  if (typeof req.body.isVerified === "boolean") {
+    property.isVerified = req.body.isVerified;
+    changed.push("isVerified");
+    // Verifying a listing also verifies its (previously unclaimed) landlord shell.
+    if (req.body.isVerified) {
+      await Landlord.updateOne({ _id: property.landlord, isVerified: false }, { isVerified: true }).catch(() => {});
+    }
+  }
+  if (["draft", "available", "rented", "coming_soon"].includes(req.body.listingStatus)) {
+    property.listingStatus = req.body.listingStatus;
+    changed.push("listingStatus");
+  }
+  await property.save();
+  await recordAudit({
+    req,
+    action: "property.admin_edit",
+    entityType: "Property",
+    entityId: property._id,
+    metadata: { fields: changed, isVerified: property.isVerified, listingStatus: property.listingStatus },
+  });
+  res.json({ success: true, property: { id: property._id, isVerified: property.isVerified, listingStatus: property.listingStatus } });
+});
+
+// @route DELETE /api/admin/properties/:id   (soft delete)
+export const deleteAdminProperty = asyncHandler(async (req, res) => {
+  if (!mongoose.isValidObjectId(req.params.id)) {
+    res.status(404);
+    throw new Error("Property not found");
+  }
+  const property = await Property.findById(req.params.id);
+  if (!property || property.isDeleted) {
+    res.status(404);
+    throw new Error("Property not found");
+  }
+  property.isDeleted = true;
+  await property.save();
+  await recordAudit({
+    req,
+    action: "property.delete",
+    entityType: "Property",
+    entityId: property._id,
+    reason: req.body?.reason || "",
+    metadata: { name: property.name, anonymous: !property.listedBy },
+  });
+  res.json({ success: true, message: "Listing removed" });
+});

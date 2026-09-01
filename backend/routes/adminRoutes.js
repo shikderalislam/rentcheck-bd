@@ -21,6 +21,9 @@ import {
   getSiteSettings,
   updateSiteSetting,
   getReportsTimeseries,
+  listAdminProperties,
+  updateAdminProperty,
+  deleteAdminProperty,
 } from "../controllers/adminController.js";
 import { protect, requireRole } from "../middleware/auth.js";
 
@@ -44,6 +47,11 @@ router.put("/review-reports/:id/resolve", resolveReviewReport);
 // Rental verification + landlord claims
 router.get("/verifications/queue", getVerificationQueue);
 router.put("/landlords/:id/verify", adminOnly, verifyLandlordClaim);
+
+// Property listings
+router.get("/properties", listAdminProperties);
+router.patch("/properties/:id", adminOnly, updateAdminProperty);
+router.delete("/properties/:id", adminOnly, deleteAdminProperty);
 
 // Anonymous reports — full management
 router.get("/reports", listAllReports);

@@ -12,6 +12,7 @@ import {
   getReportsByArea,
   addComment,
 } from "../controllers/reportController.js";
+import { submitPublicListing } from "../controllers/publicListingController.js";
 
 const router = express.Router();
 
@@ -25,6 +26,9 @@ router.get("/site-settings", cachePublic(15_000), getPublicSiteSettings);
 const reportSubmitLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 10 });
 const commentLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 30 });
 const confirmLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 100 });
+const listingLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 5 });
+
+router.post("/property-listings", listingLimiter, submitPublicListing);
 
 router.post("/reports", reportSubmitLimiter, optionalAuth, submitReport);
 router.get("/reports", listReports);

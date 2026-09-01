@@ -14,6 +14,7 @@ import SubmitReview from "./pages/SubmitReview.jsx";
 import ReportIssue from "./pages/ReportIssue.jsx";
 import ReportsFeed from "./pages/ReportsFeed.jsx";
 import ReportDetail from "./pages/ReportDetail.jsx";
+import ListProperty from "./pages/ListProperty.jsx";
 import UserDashboard from "./pages/dashboards/UserDashboard.jsx";
 import LandlordDashboard from "./pages/dashboards/LandlordDashboard.jsx";
 import ModeratorDashboard from "./pages/dashboards/ModeratorDashboard.jsx";
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="/reports" element={<ReportsFeed />} />
           <Route path="/reports/:id" element={<ReportDetail />} />
           <Route path="/report-issue" element={<ReportIssue />} />
+          <Route path="/list-property" element={<ListProperty />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/verify-email" element={<VerifyEmail />} />

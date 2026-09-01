@@ -23,6 +23,7 @@ export default function AdminDashboard() {
   const sections = [
     { key: "overview", label: t("dash.overview"), icon: "▦" },
     { key: "reports", label: t("dash.allReports"), icon: "🗒" },
+    { key: "properties", label: "Properties", icon: "🏢" },
     { key: "users", label: t("dash.users"), icon: "👥" },
     { key: "reviews", label: "Reviews", icon: "★" },
     { key: "verification", label: t("dash.verification"), icon: "✔" },
@@ -33,6 +34,7 @@ export default function AdminDashboard() {
     <DashboardLayout title={t("role.SUPER_ADMIN")} sections={sections} active={active} onSelect={setActive}>
       {active === "overview" && <Overview onGo={setActive} />}
       {active === "reports" && <ReportsTab isSuper />}
+      {active === "properties" && <PropertiesTab />}
       {active === "users" && <UsersTab isSuper />}
       {active === "reviews" && <ReviewsTab />}
       {active === "verification" && <VerificationTab />}
@@ -574,6 +576,95 @@ function AuditTab() {
           {e.reason && <span className="text-xs italic text-neutral-500">“{e.reason}”</span>}
         </div>
       ))}
+    </div>
+  );
+}
+
+/* ---------------- Properties ---------------- */
+function PropertiesTab() {
+  const [filters, setFilters] = useState({ q: "", listingStatus: "", verified: "" });
+  const [data, setData] = useState({ properties: [], pagination: {} });
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(true);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const params = { page, limit: 20 };
+    Object.entries(filters).forEach(([k, v]) => v && (params[k] = v));
+    const { data } = await api.get("/admin/properties", { params }).catch(() => ({ data: { properties: [], pagination: {} } }));
+    setData(data);
+    setLoading(false);
+  }, [filters, page]);
+  useEffect(() => {
+    load();
+  }, [load]);
+  useEffect(() => setPage(1), [filters]);
+
+  const patch = async (id, body) => {
+    await api.patch(`/admin/properties/${id}`, body);
+    load();
+  };
+  const del = async (p) => {
+    if (!window.confirm(`Delete this listing?\n\n"${p.name}"`)) return;
+    await api.delete(`/admin/properties/${p.id}`, { data: { reason: "admin dashboard" } });
+    load();
+  };
+
+  return (
+    <div>
+      <div className="flex flex-wrap gap-2 mb-4">
+        <input className="input !w-auto flex-1 min-w-[180px]" placeholder="Search name / area / city…" value={filters.q} onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))} />
+        <select className="input !w-auto" value={filters.listingStatus} onChange={(e) => setFilters((f) => ({ ...f, listingStatus: e.target.value }))}>
+          <option value="">All statuses</option>
+          {["available", "rented", "coming_soon", "draft"].map((s) => <option key={s} value={s}>{s}</option>)}
+        </select>
+        <select className="input !w-auto" value={filters.verified} onChange={(e) => setFilters((f) => ({ ...f, verified: e.target.value }))}>
+          <option value="">Any</option>
+          <option value="false">Unverified only</option>
+          <option value="true">Verified only</option>
+        </select>
+      </div>
+
+      {loading ? (
+        <p className="text-neutral-400">Loading…</p>
+      ) : data.properties.length === 0 ? (
+        <p className="text-neutral-400">No listings match.</p>
+      ) : (
+        <div className="space-y-2">
+          {data.properties.map((p) => (
+            <div key={p.id} className="card p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`badge ${p.isVerified ? "bg-brand-100 text-brand-700" : "bg-amber-100 text-amber-800"}`}>
+                      {p.isVerified ? "verified" : "unverified"}
+                    </span>
+                    <span className="badge bg-neutral-100 text-neutral-500">{p.listingStatus}</span>
+                    <span className="text-xs text-neutral-400">{p.propertyType}</span>
+                    {!p.listedBy && <span className="text-xs text-rose-600">anonymous submission</span>}
+                  </div>
+                  <p className="font-medium mt-1">{p.name}</p>
+                  <p className="text-xs text-neutral-400">
+                    {p.area}, {p.city} · ৳{(p.monthly || 0).toLocaleString()}/mo · {p.contactPhone || "no phone"}
+                    {p.listedBy ? ` · by ${p.listedBy.displayName}` : ""}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2 shrink-0">
+                  <button className="btn-secondary !py-1 !px-3 text-xs" onClick={() => patch(p.id, { isVerified: !p.isVerified })}>
+                    {p.isVerified ? "Unverify" : "Verify"}
+                  </button>
+                  <select className="input !py-1 !w-auto text-xs" value={p.listingStatus} onChange={(e) => patch(p.id, { listingStatus: e.target.value })}>
+                    {["available", "rented", "coming_soon", "draft"].map((s) => <option key={s} value={s}>{s}</option>)}
+                  </select>
+                  <button className="!py-1 !px-3 text-xs rounded-lg bg-rose-100 text-rose-700 hover:bg-rose-200" onClick={() => del(p)}>Delete</button>
+                  <a href={`/properties/${p.slug}`} target="_blank" rel="noreferrer" className="text-xs text-brand-600 text-center">View</a>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <Pager pagination={data.pagination} onPage={setPage} />
     </div>
   );
 }
