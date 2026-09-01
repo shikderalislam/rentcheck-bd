@@ -3,13 +3,16 @@ import { useNavigate, Link } from "react-router-dom";
 import api from "../api/axios.js";
 import RatingStars from "../components/RatingStars.jsx";
 import { CATEGORY_LABELS, SUPPORT_URL, timeAgoBn } from "../lib/reportLabels.js";
-
-const POPULAR_AREAS = ["মিরপুর ১০", "উত্তরা", "ধানমন্ডি", "বনানী", "মোহাম্মদপুর", "চট্টগ্রাম"];
+import { useSiteSettings } from "../lib/useSiteSettings.js";
 
 const bn = (n) => (n ?? 0).toLocaleString("bn-BD");
 
 export default function Home() {
   const navigate = useNavigate();
+  const site = useSiteSettings();
+  const hero = site.homeHero || {};
+  const announcement = site.announcement || {};
+  const popularAreas = hero.popularAreas?.length ? hero.popularAreas : ["মিরপুর ১০", "উত্তরা", "ধানমন্ডি"];
   const [q, setQ] = useState("");
   const [stats, setStats] = useState(null);
   const [reportStats, setReportStats] = useState(null);
@@ -40,27 +43,28 @@ export default function Home() {
   return (
     <div>
       {/* Announcement */}
-      <div className="bg-neutral-50 dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 text-xs sm:text-sm border-b border-neutral-200 dark:border-neutral-800">
-        <div className="container-page py-2 text-center">
-          🏠 বাসা দেখতে যাওয়ার আগে, বাসাটা সম্পর্কে জেনে নিন।
+      {announcement.enabled !== false && announcement.text && (
+        <div className="bg-neutral-50 dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 text-xs sm:text-sm border-b border-neutral-200 dark:border-neutral-800">
+          <div className="container-page py-2 text-center">{announcement.text}</div>
         </div>
-      </div>
+      )}
 
       {/* 02 Hero + 03 Search + popular areas */}
       <section className="border-b border-neutral-200 dark:border-neutral-800">
         <div className="container-page py-16 sm:py-20 max-w-3xl">
-          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-[1.1]">
-            বাসা দেখতে যাওয়ার আগে,<br />বাসাটা সম্পর্কে জেনে নিন।
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight leading-[1.1] whitespace-pre-line">
+            {hero.title || "বাসা দেখতে যাওয়ার আগে,\nবাসাটা সম্পর্কে জেনে নিন।"}
           </h1>
           <p className="mt-4 text-neutral-600 dark:text-neutral-300 text-lg">
-            ভাড়া কত, অগ্রিম কত, বাড়িওয়ালা কেমন, পানি-গ্যাস কেমন, পরিবেশ কেমন — আগের ও বর্তমান ভাড়াটিয়াদের অভিজ্ঞতা থেকে জানুন।
+            {hero.subtitle ||
+              "ভাড়া কত, অগ্রিম কত, বাড়িওয়ালা কেমন, পানি-গ্যাস কেমন, পরিবেশ কেমন — আগের ও বর্তমান ভাড়াটিয়াদের অভিজ্ঞতা থেকে জানুন।"}
           </p>
 
           <form onSubmit={onSearch} className="mt-7 flex gap-2">
             <input
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              placeholder="এলাকা, বাড়ি বা বাড়িওয়ালার নাম লিখুন..."
+              placeholder={hero.searchPlaceholder || "এলাকা, বাড়ি বা বাড়িওয়ালার নাম লিখুন..."}
               className="input flex-1"
             />
             <button type="submit" className="btn-primary whitespace-nowrap">খুঁজুন</button>
@@ -68,7 +72,7 @@ export default function Home() {
 
           <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
             <span className="text-neutral-400">জনপ্রিয় অনুসন্ধান:</span>
-            {POPULAR_AREAS.map((s) => (
+            {popularAreas.map((s) => (
               <button
                 key={s}
                 onClick={() => navigate(`/search?query=${encodeURIComponent(s)}`)}

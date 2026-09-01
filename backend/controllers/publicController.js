@@ -3,6 +3,19 @@ import Property from "../models/Property.js";
 import Landlord from "../models/Landlord.js";
 import Review from "../models/Review.js";
 import Report from "../models/Report.js";
+import SiteSetting, { PUBLIC_SETTING_DEFAULTS } from "../models/SiteSetting.js";
+
+// @route GET /api/public/site-settings
+// Admin-editable content (announcement, hero copy, FAQ) with code fallbacks.
+export const getPublicSiteSettings = asyncHandler(async (req, res) => {
+  const rows = await SiteSetting.find({ key: { $in: Object.keys(PUBLIC_SETTING_DEFAULTS) } });
+  const stored = Object.fromEntries(rows.map((r) => [r.key, r.value]));
+  const settings = {};
+  for (const key of Object.keys(PUBLIC_SETTING_DEFAULTS)) {
+    settings[key] = stored[key] ?? PUBLIC_SETTING_DEFAULTS[key];
+  }
+  res.json({ success: true, settings });
+});
 
 // @route GET /api/public/stats
 // Powers the homepage "পরিসংখ্যান" counters. Community/rental data only — no money.

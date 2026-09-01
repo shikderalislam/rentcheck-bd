@@ -103,6 +103,13 @@ const reportSchema = new mongoose.Schema(
       riskFlags: [{ type: String }],
     },
 
+    // Set only when a logged-in user submits. Private — never in toPublicJSON,
+    // visible only to admins in the dashboard.
+    submittedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null, select: false },
+
+    lastEditedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    lastEditedAt: { type: Date },
+
     // Coarse, one-way, rotating fingerprint for basic abuse throttling only.
     // Never a raw IP, never PII, never exposed.
     submissionFingerprint: { type: String, select: false },

@@ -29,6 +29,10 @@ const userSchema = new mongoose.Schema(
     trustLevel: { type: Number, default: 0 }, // 0 unverified ... 4 highly trusted
     isSuspended: { type: Boolean, default: false },
     isDeleted: { type: Boolean, default: false },
+
+    // Lightweight sign-in telemetry for the admin dashboard (no IP stored).
+    lastLoginAt: { type: Date },
+    loginCount: { type: Number, default: 0 },
   },
   { timestamps: true }
 );

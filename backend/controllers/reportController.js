@@ -136,6 +136,7 @@ export const submitReport = asyncHandler(async (req, res) => {
   const report = await Report.create({
     ...doc,
     status,
+    submittedBy: req.user?._id || null, // private; only set when a logged-in user posts
     submissionFingerprint: buildFingerprint(req),
     moderation: { riskFlags: flags },
   });

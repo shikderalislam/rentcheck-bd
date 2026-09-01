@@ -60,6 +60,10 @@ export const login = asyncHandler(async (req, res) => {
     throw new Error("This account is unavailable");
   }
 
+  user.lastLoginAt = new Date();
+  user.loginCount = (user.loginCount || 0) + 1;
+  await user.save();
+
   const token = generateToken(user._id, user.role);
   setTokenCookie(res, token);
 

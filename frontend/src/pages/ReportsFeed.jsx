@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import api from "../api/axios.js";
 import RatingStars from "../components/RatingStars.jsx";
 import FaqAccordion from "../components/FaqAccordion.jsx";
+import { useSiteSettings } from "../lib/useSiteSettings.js";
 import {
   CATEGORY_LABELS,
   DIVISIONS,
@@ -16,13 +17,6 @@ const SORTS = [
   ["top_rated", "সর্বোচ্চ রেটিং"],
 ];
 
-const FAQ_ITEMS = [
-  { q: "এই রিপোর্টগুলো কি যাচাইকৃত?", a: "না। প্রতিটি এন্ট্রি একজন ভাড়াটিয়ার অযাচাইকৃত, ব্যক্তিগত অভিজ্ঞতা। আমরা কোনো আইনি দাবি করি না — এটি শুধু অন্য ভাড়াটিয়াদের সচেতন থাকতে সাহায্য করার একটি তথ্যভাণ্ডার।" },
-  { q: "আমার তথ্য কি সংরক্ষণ করা হয়?", a: "না। নাম, ইমেইল, ফোন, কাঁচা আইপি বা ডিভাইস আইডি সংরক্ষণ করা হয় না। শুধু মৌলিক অপব্যবহার প্রতিরোধের জন্য একটি অপরিবর্তনযোগ্য, বেনামি টোকেন ব্যবহার করা হয়।" },
-  { q: "‘এই রিপোর্ট নিশ্চিত করুন’ মানে কী?", a: "এর মানে ‘আমিও একই ধরনের অভিজ্ঞতার সম্মুখীন হয়েছি’। একই ব্রাউজার থেকে একটি রিপোর্ট একবারই নিশ্চিত করা যায়। এটি সত্যতার প্রমাণ নয়, বরং কতজন একই কথা বলছেন তার একটি ইঙ্গিত।" },
-  { q: "প্রকাশের আগে কী হয়?", a: "সন্দেহজনক বা ঝুঁকিপূর্ণ (নাম/ফোন নম্বরযুক্ত) রিপোর্ট একজন মডারেটরের অনুমোদনের জন্য অপেক্ষায় থাকে। বাকিগুলো সাথে সাথে প্রকাশিত হয়।" },
-];
-
 const LS_KEY = "rc_confirmed_reports";
 const loadConfirmed = () => {
   try {
@@ -33,6 +27,8 @@ const loadConfirmed = () => {
 };
 
 export default function ReportsFeed() {
+  const site = useSiteSettings();
+  const faqItems = Array.isArray(site.faq) && site.faq.length ? site.faq : [];
   const [stats, setStats] = useState(null);
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -166,10 +162,12 @@ export default function ReportsFeed() {
       </section>
 
       {/* FAQ */}
-      <section className="container-page py-12 max-w-2xl border-t border-neutral-200 dark:border-neutral-800">
-        <h2 className="text-2xl font-extrabold mb-6">প্রশ্ন।</h2>
-        <FaqAccordion items={FAQ_ITEMS} />
-      </section>
+      {faqItems.length > 0 && (
+        <section className="container-page py-12 max-w-2xl border-t border-neutral-200 dark:border-neutral-800">
+          <h2 className="text-2xl font-extrabold mb-6">প্রশ্ন।</h2>
+          <FaqAccordion items={faqItems} />
+        </section>
+      )}
 
       {/* CTA */}
       <section className="bg-neutral-900 text-white">
