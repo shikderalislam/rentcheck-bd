@@ -1,25 +1,28 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { dashboardPathOf } from "../lib/roles.js";
 
 export default function Login() {
-  const { login } = useAuth();
+  const { login, user, loading } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  if (!loading && user) return <Navigate to={dashboardPathOf(user)} replace />;
 
   const submit = async (e) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
+    setSubmitting(true);
     try {
-      await login(form.email, form.password);
-      navigate("/dashboard");
+      const u = await login(form.email, form.password);
+      navigate(dashboardPathOf(u), { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || "Login failed");
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
@@ -36,7 +39,7 @@ export default function Login() {
           <label className="text-sm font-medium">Password</label>
           <input className="input mt-1" type="password" required value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} />
         </div>
-        <button type="submit" disabled={loading} className="btn-primary w-full">{loading ? "Logging in..." : "Log in"}</button>
+        <button type="submit" disabled={submitting} className="btn-primary w-full">{submitting ? "Logging in..." : "Log in"}</button>
         <p className="text-sm text-neutral-500 text-center">
           No account? <Link to="/register" className="text-brand-600 font-medium">Sign up</Link>
         </p>

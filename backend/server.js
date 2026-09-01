@@ -15,6 +15,8 @@ import landlordRoutes from "./routes/landlordRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import publicRoutes from "./routes/publicRoutes.js";
+import meRoutes from "./routes/meRoutes.js";
+import landlordDashRoutes from "./routes/landlordDashRoutes.js";
 
 dotenv.config();
 await connectDB();
@@ -46,6 +48,8 @@ app.use("/api/landlords", landlordRoutes);
 app.use("/api", reviewRoutes); // exposes /api/rentals/* and /api/reviews/*
 app.use("/api/admin", adminRoutes);
 app.use("/api/public", publicRoutes);
+app.use("/api/me", meRoutes);
+app.use("/api/landlord", landlordDashRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

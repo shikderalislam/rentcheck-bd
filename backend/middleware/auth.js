@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import asyncHandler from "express-async-handler";
 import User from "../models/User.js";
+import { roleGroup } from "../utils/roles.js";
 
 export const protect = asyncHandler(async (req, res, next) => {
   let token = req.cookies?.[process.env.COOKIE_NAME || "rc_token"];
@@ -31,6 +32,16 @@ export const protect = asyncHandler(async (req, res, next) => {
 
 export const requireRole = (...roles) => (req, res, next) => {
   if (!req.user || !roles.includes(req.user.role)) {
+    res.status(403);
+    throw new Error("Insufficient permissions");
+  }
+  next();
+};
+
+// Same as requireRole but works on the four product role groups
+// (USER / LANDLORD / MODERATOR / SUPER_ADMIN).
+export const requireRoleGroup = (...groups) => (req, res, next) => {
+  if (!req.user || !groups.includes(roleGroup(req.user.role))) {
     res.status(403);
     throw new Error("Insufficient permissions");
   }

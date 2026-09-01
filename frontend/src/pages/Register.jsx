@@ -1,21 +1,24 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { dashboardPathOf } from "../lib/roles.js";
 
 export default function Register() {
-  const { register } = useAuth();
+  const { register, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ displayName: "", email: "", password: "", role: "tenant" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  if (!authLoading && user) return <Navigate to={dashboardPathOf(user)} replace />;
 
   const submit = async (e) => {
     e.preventDefault();
     setError("");
     setLoading(true);
     try {
-      await register(form);
-      navigate("/dashboard");
+      const u = await register(form);
+      navigate(dashboardPathOf(u), { replace: true });
     } catch (err) {
       setError(err.response?.data?.message || "Registration failed");
     } finally {

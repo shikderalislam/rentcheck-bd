@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
+import { roleGroup, dashboardPath } from "../utils/roles.js";
 
 const userSchema = new mongoose.Schema(
   {
@@ -55,6 +56,8 @@ userSchema.methods.toPublicJSON = function () {
     displayName: this.displayName,
     avatarUrl: this.avatarUrl,
     role: this.role,
+    roleGroup: roleGroup(this.role),
+    dashboard: dashboardPath(this.role),
     isEmailVerified: this.isEmailVerified,
     trustLevel: this.trustLevel,
     createdAt: this.createdAt,

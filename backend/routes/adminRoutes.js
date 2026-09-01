@@ -20,6 +20,7 @@ import {
   updateUser,
   getSiteSettings,
   updateSiteSetting,
+  getReportsTimeseries,
 } from "../controllers/adminController.js";
 import { protect, requireRole } from "../middleware/auth.js";
 
@@ -31,6 +32,7 @@ const adminOnly = requireRole("admin", "super_admin");
 
 // Overview
 router.get("/stats", getDashboardStats);
+router.get("/reports/timeseries", getReportsTimeseries);
 router.get("/audit", adminOnly, getAuditLog);
 
 // Reviews (account-based)

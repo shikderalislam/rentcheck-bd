@@ -91,6 +91,27 @@ export const getDashboardStats = asyncHandler(async (req, res) => {
   });
 });
 
+// @route GET /api/admin/reports/timeseries?days=30
+export const getReportsTimeseries = asyncHandler(async (req, res) => {
+  const days = Math.min(Math.max(Number(req.query.days) || 30, 7), 90);
+  const start = new Date(Date.now() - (days - 1) * 864e5);
+  start.setHours(0, 0, 0, 0);
+
+  const rows = await Report.aggregate([
+    { $match: { createdAt: { $gte: start } } },
+    { $group: { _id: { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } }, count: { $sum: 1 } } },
+  ]);
+  const map = Object.fromEntries(rows.map((r) => [r._id, r.count]));
+
+  const series = [];
+  for (let i = 0; i < days; i++) {
+    const d = new Date(start.getTime() + i * 864e5);
+    const key = d.toISOString().slice(0, 10);
+    series.push({ date: key, count: map[key] || 0 });
+  }
+  res.json({ success: true, days, series });
+});
+
 // ---------------- Reports: full management ----------------
 
 // @route GET /api/admin/reports?status=&division=&category=&q=&page=&limit=

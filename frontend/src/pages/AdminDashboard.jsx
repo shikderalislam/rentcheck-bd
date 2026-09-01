@@ -1,79 +1,142 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import api from "../api/axios.js";
-import { useAuth } from "../context/AuthContext.jsx";
-import {
-  CATEGORY_LABELS,
-  CATEGORY_OPTIONS,
-  DIVISIONS,
-  DIVISION_BN,
-} from "../lib/reportLabels.js";
+import { useI18n } from "../lib/i18n.jsx";
+import DashboardLayout, { StatCard, Sparkline } from "../components/DashboardLayout.jsx";
+import { CATEGORY_LABELS, CATEGORY_OPTIONS, DIVISIONS, DIVISION_BN } from "../lib/reportLabels.js";
 
 const REPORT_STATUSES = ["PENDING", "APPROVED", "REJECTED", "HIDDEN", "DISPUTED"];
 const ROLES = ["tenant", "landlord", "property_manager", "moderator", "admin", "super_admin"];
-const TABS = ["Overview", "Reports", "Users", "Reviews", "Verification", "Content", "Audit"];
+const REASON_LABELS = {
+  false_information: "False information",
+  personal_information: "Exposes personal info",
+  harassment_or_hate: "Harassment / hate",
+  spam_or_ad: "Spam / ad",
+  wrong_property_or_landlord: "Wrong property/landlord",
+  conflict_of_interest: "Conflict of interest",
+  other: "Other",
+};
 
 export default function AdminDashboard() {
-  const { user } = useAuth();
-  const isSuper = user?.role === "super_admin";
-  const [tab, setTab] = useState("Overview");
-
+  const { t } = useI18n();
+  const [active, setActive] = useState("overview");
+  const sections = [
+    { key: "overview", label: t("dash.overview"), icon: "▦" },
+    { key: "reports", label: t("dash.allReports"), icon: "🗒" },
+    { key: "users", label: t("dash.users"), icon: "👥" },
+    { key: "reviews", label: "Reviews", icon: "★" },
+    { key: "verification", label: t("dash.verification"), icon: "✔" },
+    { key: "content", label: t("dash.content"), icon: "✎" },
+    { key: "audit", label: t("dash.audit"), icon: "🕓" },
+  ];
   return (
-    <div className="container-page py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Admin & Moderation</h1>
-        <span className="text-xs text-neutral-400">{user?.displayName} · {user?.role}</span>
-      </div>
-
-      <div className="flex flex-wrap gap-1 border-b border-neutral-200 dark:border-neutral-800 mb-6">
-        {TABS.map((t) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            className={`px-3 py-2 text-sm font-medium -mb-px border-b-2 ${
-              tab === t
-                ? "border-brand-600 text-brand-700"
-                : "border-transparent text-neutral-500 hover:text-neutral-800 dark:hover:text-neutral-200"
-            }`}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
-
-      {tab === "Overview" && <Overview />}
-      {tab === "Reports" && <ReportsTab isSuper={isSuper} />}
-      {tab === "Users" && <UsersTab isSuper={isSuper} />}
-      {tab === "Reviews" && <ReviewsTab />}
-      {tab === "Verification" && <VerificationTab />}
-      {tab === "Content" && <ContentTab isSuper={isSuper} />}
-      {tab === "Audit" && <AuditTab />}
-    </div>
+    <DashboardLayout title={t("role.SUPER_ADMIN")} sections={sections} active={active} onSelect={setActive}>
+      {active === "overview" && <Overview onGo={setActive} />}
+      {active === "reports" && <ReportsTab isSuper />}
+      {active === "users" && <UsersTab isSuper />}
+      {active === "reviews" && <ReviewsTab />}
+      {active === "verification" && <VerificationTab />}
+      {active === "content" && <ContentTab />}
+      {active === "audit" && <AuditTab />}
+    </DashboardLayout>
   );
 }
 
 /* ---------------- Overview ---------------- */
-function Overview() {
+function Overview({ onGo }) {
   const [stats, setStats] = useState(null);
+  const [series, setSeries] = useState([]);
+  const [recent, setRecent] = useState([]);
+  const [areas, setAreas] = useState([]);
+
   useEffect(() => {
-    api.get("/admin/stats").then((r) => setStats(r.data.stats)).catch(() => setStats(null));
+    api.get("/admin/stats").then((r) => setStats(r.data.stats)).catch(() => {});
+    api.get("/admin/reports/timeseries", { params: { days: 30 } }).then((r) => setSeries(r.data.series)).catch(() => {});
+    api.get("/admin/reports", { params: { limit: 6 } }).then((r) => setRecent(r.data.reports)).catch(() => {});
+    api.get("/public/reports/by-area", { params: { limit: 6 } }).then((r) => setAreas(r.data.areas)).catch(() => {});
   }, []);
+
   if (!stats) return <p className="text-neutral-400">Loading…</p>;
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-      {Object.entries(stats).map(([k, v]) => (
-        <div key={k} className="card p-4">
-          <p className="text-xs text-neutral-500 capitalize">{k.replace(/([A-Z0-9])/g, " $1").trim()}</p>
-          <p className="text-2xl font-bold">{v}</p>
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        <StatCard label="Total reports" value={stats.reports} sub={`+${stats.reports7d} in 7d`} />
+        <StatCard label="Published" value={stats.reportsApproved} />
+        <StatCard label="Pending" value={stats.reportsPending} />
+        <StatCard label="Confirmations" value={stats.reportConfirmations} />
+        <StatCard label="Users" value={stats.users} sub={`+${stats.newUsers7d} in 7d`} />
+        <StatCard label="Landlords" value={stats.landlords} />
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-4">
+        <div className="card p-4 lg:col-span-2">
+          <div className="flex items-center justify-between mb-2">
+            <p className="font-semibold text-sm">Reports — last 30 days</p>
+            <span className="text-xs text-neutral-400">{series.reduce((a, b) => a + b.count, 0)} total</span>
+          </div>
+          <div className="text-brand-500"><Sparkline series={series} height={60} /></div>
         </div>
-      ))}
+        <div className="card p-4">
+          <p className="font-semibold text-sm mb-2">Needs attention</p>
+          <ul className="text-sm space-y-1.5">
+            <Li label="Review queue" n={stats.pendingReviews + stats.needsReview} onClick={() => onGo("reviews")} />
+            <Li label="Reported content" n={stats.openReviewReports} onClick={() => onGo("reviews")} />
+            <Li label="Pending verifications" n={stats.pendingVerifications} onClick={() => onGo("verification")} />
+            <Li label="Suspended users" n={stats.suspended} onClick={() => onGo("users")} />
+          </ul>
+        </div>
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-4">
+        <div className="card p-4">
+          <p className="font-semibold text-sm mb-3">Recent reports</p>
+          {recent.length === 0 ? (
+            <p className="text-sm text-neutral-400">None yet.</p>
+          ) : (
+            <div className="space-y-2">
+              {recent.map((r) => (
+                <div key={r._id} className="flex items-center justify-between gap-3 text-sm">
+                  <span className="truncate">{r.issueTitle}</span>
+                  <span className={`badge shrink-0 ${statusCls(r.status)}`}>{r.status}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <button className="text-xs text-brand-600 mt-3" onClick={() => onGo("reports")}>All reports →</button>
+        </div>
+        <div className="card p-4">
+          <p className="font-semibold text-sm mb-3">Top areas by reports</p>
+          {areas.length === 0 ? (
+            <p className="text-sm text-neutral-400">Not enough data.</p>
+          ) : (
+            <div className="space-y-2">
+              {areas.map((a) => (
+                <div key={`${a.area}-${a.city}`} className="flex items-center justify-between text-sm">
+                  <span>{a.area}, {a.city}</span>
+                  <span className="text-neutral-400">
+                    {a.reportCount} · {a.topIssue ? CATEGORY_LABELS[a.topIssue] || a.topIssue : "—"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
+const Li = ({ label, n, onClick }) => (
+  <li className="flex items-center justify-between">
+    <button className="hover:text-brand-600" onClick={onClick}>{label}</button>
+    <span className={`text-xs rounded-full px-1.5 py-0.5 ${n > 0 ? "bg-rose-100 text-rose-700" : "bg-neutral-100 text-neutral-400"}`}>{n}</span>
+  </li>
+);
 
 /* ---------------- Reports ---------------- */
 function ReportsTab({ isSuper }) {
   const [filters, setFilters] = useState({ status: "", division: "", category: "", q: "" });
-  const [data, setData] = useState({ reports: [], pagination: { pages: 1, page: 1, total: 0 } });
+  const [data, setData] = useState({ reports: [], pagination: {} });
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null);
@@ -100,12 +163,7 @@ function ReportsTab({ isSuper }) {
   return (
     <div>
       <div className="flex flex-wrap gap-2 mb-4">
-        <input
-          className="input !w-auto flex-1 min-w-[180px]"
-          placeholder="Search title / area / text…"
-          value={filters.q}
-          onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-        />
+        <input className="input !w-auto flex-1 min-w-[180px]" placeholder="Search title / area / text…" value={filters.q} onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))} />
         <select className="input !w-auto" value={filters.status} onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}>
           <option value="">All statuses</option>
           {REPORT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
@@ -133,16 +191,11 @@ function ReportsTab({ isSuper }) {
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className={`badge ${statusCls(r.status)}`}>{r.status}</span>
                     <span className="text-xs text-neutral-400">{CATEGORY_LABELS[r.category] || r.category}</span>
-                    {r.submittedBy && (
-                      <span className="text-xs text-brand-600" title={r.submittedBy.email}>
-                        by {r.submittedBy.displayName}
-                      </span>
-                    )}
+                    {r.submittedBy && <span className="text-xs text-brand-600" title={r.submittedBy.email}>by {r.submittedBy.displayName}</span>}
                   </div>
                   <p className="font-medium mt-1">{r.issueTitle}</p>
                   <p className="text-xs text-neutral-400">
-                    {r.area ? `${r.area}, ` : ""}{r.city}, {r.division} · {r.confirmations} confirmations ·{" "}
-                    {new Date(r.createdAt).toLocaleDateString("en-GB")}
+                    {r.area ? `${r.area}, ` : ""}{r.city}, {r.division} · {r.confirmations} confirmations · {new Date(r.createdAt).toLocaleDateString("en-GB")}
                     {r.lastEditedAt ? " · edited" : ""}
                   </p>
                   <p className="text-sm text-neutral-500 mt-1 line-clamp-2">{r.description}</p>
@@ -150,9 +203,7 @@ function ReportsTab({ isSuper }) {
                 <div className="flex flex-col gap-2 shrink-0">
                   <button className="btn-secondary !py-1 !px-3 text-xs" onClick={() => setEditing(r)}>Edit</button>
                   {isSuper && (
-                    <button className="!py-1 !px-3 text-xs rounded-lg bg-rose-100 text-rose-700 hover:bg-rose-200" onClick={() => del(r)}>
-                      Delete
-                    </button>
+                    <button className="!py-1 !px-3 text-xs rounded-lg bg-rose-100 text-rose-700 hover:bg-rose-200" onClick={() => del(r)}>Delete</button>
                   )}
                 </div>
               </div>
@@ -162,16 +213,7 @@ function ReportsTab({ isSuper }) {
       )}
 
       <Pager pagination={data.pagination} onPage={setPage} />
-      {editing && (
-        <ReportEditModal
-          report={editing}
-          onClose={() => setEditing(null)}
-          onSaved={() => {
-            setEditing(null);
-            load();
-          }}
-        />
-      )}
+      {editing && <ReportEditModal report={editing} onClose={() => setEditing(null)} onSaved={() => { setEditing(null); load(); }} />}
     </div>
   );
 }
@@ -198,8 +240,7 @@ function ReportEditModal({ report, onClose, onSaved }) {
     setSaving(true);
     setErr("");
     try {
-      const payload = { ...form };
-      payload.overallRating = form.overallRating === "" ? undefined : Number(form.overallRating);
+      const payload = { ...form, overallRating: form.overallRating === "" ? undefined : Number(form.overallRating) };
       await api.patch(`/admin/reports/${report._id}`, payload);
       onSaved();
     } catch (e) {
@@ -217,43 +258,35 @@ function ReportEditModal({ report, onClose, onSaved }) {
         </div>
         {err && <p className="text-sm text-rose-600 mb-2">{err}</p>}
         <div className="space-y-3 text-sm">
-          <Field label="Title"><input className="input" value={form.issueTitle} onChange={(e) => set("issueTitle", e.target.value)} /></Field>
+          <F label="Title"><input className="input" value={form.issueTitle} onChange={(e) => set("issueTitle", e.target.value)} /></F>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Status">
+            <F label="Status">
               <select className="input" value={form.status} onChange={(e) => set("status", e.target.value)}>
                 {REPORT_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
               </select>
-            </Field>
-            <Field label="Category">
+            </F>
+            <F label="Category">
               <select className="input" value={form.category} onChange={(e) => set("category", e.target.value)}>
                 {CATEGORY_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
-            </Field>
+            </F>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            <Field label="Division">
+            <F label="Division">
               <select className="input" value={form.division} onChange={(e) => set("division", e.target.value)}>
                 {DIVISIONS.map((d) => <option key={d} value={d}>{d}</option>)}
               </select>
-            </Field>
-            <Field label="City"><input className="input" value={form.city} onChange={(e) => set("city", e.target.value)} /></Field>
-            <Field label="Area"><input className="input" value={form.area} onChange={(e) => set("area", e.target.value)} /></Field>
+            </F>
+            <F label="City"><input className="input" value={form.city} onChange={(e) => set("city", e.target.value)} /></F>
+            <F label="Area"><input className="input" value={form.area} onChange={(e) => set("area", e.target.value)} /></F>
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Property name"><input className="input" value={form.propertyName} onChange={(e) => set("propertyName", e.target.value)} /></Field>
-            <Field label="Overall rating (1-5)">
-              <input type="number" min="1" max="5" className="input" value={form.overallRating} onChange={(e) => set("overallRating", e.target.value)} />
-            </Field>
+            <F label="Property name"><input className="input" value={form.propertyName} onChange={(e) => set("propertyName", e.target.value)} /></F>
+            <F label="Overall rating (1-5)"><input type="number" min="1" max="5" className="input" value={form.overallRating} onChange={(e) => set("overallRating", e.target.value)} /></F>
           </div>
-          <Field label="Description">
-            <textarea className="input min-h-[100px]" value={form.description} onChange={(e) => set("description", e.target.value)} />
-          </Field>
-          <Field label="Landlord behavior">
-            <textarea className="input min-h-[60px]" value={form.landlordBehavior} onChange={(e) => set("landlordBehavior", e.target.value)} />
-          </Field>
-          <Field label="Moderation note (internal)">
-            <input className="input" value={form.moderationNote} onChange={(e) => set("moderationNote", e.target.value)} />
-          </Field>
+          <F label="Description"><textarea className="input min-h-[100px]" value={form.description} onChange={(e) => set("description", e.target.value)} /></F>
+          <F label="Landlord behavior"><textarea className="input min-h-[60px]" value={form.landlordBehavior} onChange={(e) => set("landlordBehavior", e.target.value)} /></F>
+          <F label="Moderation note (internal)"><input className="input" value={form.moderationNote} onChange={(e) => set("moderationNote", e.target.value)} /></F>
         </div>
         <div className="flex justify-end gap-2 mt-4">
           <button onClick={onClose} className="btn-secondary !py-1.5 !px-4 text-sm">Cancel</button>
@@ -299,12 +332,7 @@ function UsersTab({ isSuper }) {
   return (
     <div>
       <div className="flex flex-wrap gap-2 mb-4">
-        <input
-          className="input !w-auto flex-1 min-w-[180px]"
-          placeholder="Search name / email…"
-          value={filters.q}
-          onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))}
-        />
+        <input className="input !w-auto flex-1 min-w-[180px]" placeholder="Search name / email…" value={filters.q} onChange={(e) => setFilters((f) => ({ ...f, q: e.target.value }))} />
         <select className="input !w-auto" value={filters.role} onChange={(e) => setFilters((f) => ({ ...f, role: e.target.value }))}>
           <option value="">All roles</option>
           {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -322,12 +350,8 @@ function UsersTab({ isSuper }) {
           <table className="w-full text-sm">
             <thead className="text-left text-xs text-neutral-400 border-b border-neutral-200 dark:border-neutral-800">
               <tr>
-                <th className="py-2 pr-3">User</th>
-                <th className="py-2 pr-3">Role</th>
-                <th className="py-2 pr-3">Verified</th>
-                <th className="py-2 pr-3">Logins</th>
-                <th className="py-2 pr-3">Joined</th>
-                <th className="py-2 pr-3">Actions</th>
+                <th className="py-2 pr-3">User</th><th className="py-2 pr-3">Role</th><th className="py-2 pr-3">Verified</th>
+                <th className="py-2 pr-3">Logins</th><th className="py-2 pr-3">Joined</th><th className="py-2 pr-3">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -339,29 +363,18 @@ function UsersTab({ isSuper }) {
                   </td>
                   <td className="py-2 pr-3">
                     {isSuper ? (
-                      <select
-                        className="input !py-1 !w-auto text-xs"
-                        value={u.role}
-                        disabled={busy === u.id}
-                        onChange={(e) => patch(u.id, { role: e.target.value })}
-                      >
+                      <select className="input !py-1 !w-auto text-xs" value={u.role} disabled={busy === u.id} onChange={(e) => patch(u.id, { role: e.target.value })}>
                         {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
                       </select>
-                    ) : (
-                      u.role
-                    )}
+                    ) : u.role}
                   </td>
                   <td className="py-2 pr-3">
-                    <button
-                      className="text-xs underline decoration-dotted"
-                      onClick={() => patch(u.id, { isEmailVerified: !u.isEmailVerified })}
-                    >
+                    <button className="text-xs underline decoration-dotted" onClick={() => patch(u.id, { isEmailVerified: !u.isEmailVerified })}>
                       {u.isEmailVerified ? "yes" : "no"}
                     </button>
                   </td>
                   <td className="py-2 pr-3 text-xs text-neutral-500">
-                    {u.loginCount}
-                    {u.lastLoginAt ? <span className="text-neutral-400"> · {new Date(u.lastLoginAt).toLocaleDateString("en-GB")}</span> : ""}
+                    {u.loginCount}{u.lastLoginAt ? <span className="text-neutral-400"> · {new Date(u.lastLoginAt).toLocaleDateString("en-GB")}</span> : ""}
                   </td>
                   <td className="py-2 pr-3 text-xs text-neutral-400">{new Date(u.createdAt).toLocaleDateString("en-GB")}</td>
                   <td className="py-2 pr-3">
@@ -380,12 +393,11 @@ function UsersTab({ isSuper }) {
         </div>
       )}
       <Pager pagination={data.pagination} onPage={setPage} />
-      {!isSuper && <p className="text-xs text-neutral-400 mt-3">Role changes require a super admin.</p>}
     </div>
   );
 }
 
-/* ---------------- Reviews (account-based) ---------------- */
+/* ---------------- Reviews ---------------- */
 function ReviewsTab() {
   const [queue, setQueue] = useState([]);
   const [reports, setReports] = useState([]);
@@ -400,7 +412,6 @@ function ReviewsTab() {
   useEffect(() => {
     load();
   }, [load]);
-
   const moderate = async (id, decision) => {
     try {
       await api.put(`/admin/reviews/${id}/moderate`, { decision });
@@ -413,7 +424,6 @@ function ReviewsTab() {
     await api.put(`/admin/review-reports/${id}/resolve`, { action });
     load();
   };
-
   return (
     <div className="space-y-8">
       <section>
@@ -438,13 +448,13 @@ function ReviewsTab() {
         )}
       </section>
       <section>
-        <h2 className="font-semibold mb-3">Review reports ({reports.length})</h2>
+        <h2 className="font-semibold mb-3">Reported content ({reports.length})</h2>
         {reports.length === 0 ? <p className="text-neutral-400">No open reports.</p> : (
           <div className="space-y-2">
             {reports.map((rep) => (
               <div key={rep._id} className="card p-3 flex justify-between items-start gap-3">
                 <div>
-                  <p className="font-medium"><span className="badge bg-rose-100 text-rose-700 mr-2">{rep.reason}</span>{rep.review?.property?.name || "review"}</p>
+                  <p className="font-medium"><span className="badge bg-rose-100 text-rose-700 mr-2">{REASON_LABELS[rep.reason] || rep.reason}</span>{rep.review?.property?.name || "review"}</p>
                   {rep.detail && <p className="text-sm text-neutral-500 mt-1">“{rep.detail}”</p>}
                   <p className="text-xs text-neutral-400 mt-1 line-clamp-2">{rep.review?.body}</p>
                 </div>
@@ -495,12 +505,11 @@ function VerificationTab() {
   );
 }
 
-/* ---------------- Content (dynamic sections) ---------------- */
-function ContentTab({ isSuper }) {
+/* ---------------- Content ---------------- */
+function ContentTab() {
   const [settings, setSettings] = useState(null);
   const [draft, setDraft] = useState({});
   const [msg, setMsg] = useState("");
-
   useEffect(() => {
     api.get("/admin/site-settings").then((r) => {
       setSettings(r.data.settings);
@@ -509,10 +518,7 @@ function ContentTab({ isSuper }) {
       setDraft(d);
     });
   }, []);
-
   if (!settings) return <p className="text-neutral-400">Loading…</p>;
-  if (!isSuper && false) return null;
-
   const save = async (key) => {
     setMsg("");
     let value;
@@ -529,29 +535,20 @@ function ContentTab({ isSuper }) {
       setMsg(e.response?.data?.message || "Save failed");
     }
   };
-
   return (
     <div className="space-y-6">
-      <p className="text-sm text-neutral-500">
-        Edit the JSON for each block, then Save. These drive the homepage announcement bar, hero copy and the FAQ list.
-      </p>
+      <p className="text-sm text-neutral-500">Edit the JSON for each block, then Save. Drives the homepage announcement, hero copy and FAQ.</p>
       {msg && <p className="text-sm text-brand-700">{msg}</p>}
       {Object.entries(settings).map(([key, meta]) => (
         <div key={key} className="card p-4">
           <div className="flex items-center justify-between mb-2">
             <div>
               <p className="font-semibold">{key}</p>
-              <p className="text-xs text-neutral-400">
-                {meta.isDefault ? "using code default" : `edited${meta.updatedAt ? " " + new Date(meta.updatedAt).toLocaleString("en-GB") : ""}`}
-              </p>
+              <p className="text-xs text-neutral-400">{meta.isDefault ? "using code default" : "edited"}</p>
             </div>
             <button className="btn-primary !py-1.5 !px-4 text-sm" onClick={() => save(key)}>Save</button>
           </div>
-          <textarea
-            className="input font-mono text-xs min-h-[160px]"
-            value={draft[key] ?? ""}
-            onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
-          />
+          <textarea className="input font-mono text-xs min-h-[160px]" value={draft[key] ?? ""} onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))} />
         </div>
       ))}
     </div>
@@ -582,13 +579,8 @@ function AuditTab() {
 }
 
 /* ---------------- shared ---------------- */
-function Field({ label, children }) {
-  return (
-    <label className="block">
-      <span className="text-xs text-neutral-500">{label}</span>
-      <div className="mt-1">{children}</div>
-    </label>
-  );
+function F({ label, children }) {
+  return <label className="block"><span className="text-xs text-neutral-500">{label}</span><div className="mt-1">{children}</div></label>;
 }
 function Pager({ pagination, onPage }) {
   const pages = pagination?.pages || 1;
@@ -603,13 +595,11 @@ function Pager({ pagination, onPage }) {
   );
 }
 function statusCls(s) {
-  return (
-    {
-      APPROVED: "bg-emerald-100 text-emerald-700",
-      PENDING: "bg-amber-100 text-amber-800",
-      REJECTED: "bg-rose-100 text-rose-700",
-      HIDDEN: "bg-neutral-200 text-neutral-600",
-      DISPUTED: "bg-purple-100 text-purple-700",
-    }[s] || "bg-neutral-100 text-neutral-500"
-  );
+  return {
+    APPROVED: "bg-emerald-100 text-emerald-700",
+    PENDING: "bg-amber-100 text-amber-800",
+    REJECTED: "bg-rose-100 text-rose-700",
+    HIDDEN: "bg-neutral-200 text-neutral-600",
+    DISPUTED: "bg-purple-100 text-purple-700",
+  }[s] || "bg-neutral-100 text-neutral-500";
 }

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../api/axios.js";
 import RatingStars from "../components/RatingStars.jsx";
-import { CATEGORY_LABELS, SUPPORT_URL, timeAgoBn } from "../lib/reportLabels.js";
+import { CATEGORY_LABELS, timeAgoBn } from "../lib/reportLabels.js";
 import { useSiteSettings } from "../lib/useSiteSettings.js";
 
 const bn = (n) => (n ?? 0).toLocaleString("bn-BD");
@@ -44,7 +44,7 @@ export default function Home() {
     <div>
       {/* Announcement */}
       {announcement.enabled !== false && announcement.text && (
-        <div className="bg-neutral-50 dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 text-xs sm:text-sm border-b border-neutral-200 dark:border-neutral-800">
+        <div className="bg-brand-50 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-100 text-xs sm:text-sm font-medium border-b border-neutral-200 dark:border-neutral-800">
           <div className="container-page py-2 text-center">{announcement.text}</div>
         </div>
       )}
@@ -71,7 +71,7 @@ export default function Home() {
           </form>
 
           <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
-            <span className="text-neutral-400">জনপ্রিয় অনুসন্ধান:</span>
+            <span className="text-neutral-500 dark:text-neutral-400">জনপ্রিয় অনুসন্ধান:</span>
             {popularAreas.map((s) => (
               <button
                 key={s}
@@ -143,7 +143,7 @@ export default function Home() {
                   {r.area ? `${r.area}, ` : ""}{r.city} · {timeAgoBn(r.createdAt)}
                 </p>
                 <p className="text-sm text-neutral-500 mt-2 line-clamp-3 flex-1">{r.excerpt}</p>
-                <p className="text-xs text-neutral-400 mt-3">▲ {bn(r.confirmations)} জন নিশ্চিত করেছেন · অযাচাইকৃত</p>
+                <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-3">▲ {bn(r.confirmations)} জন নিশ্চিত করেছেন · অযাচাইকৃত</p>
               </Link>
             ))}
           </div>
@@ -164,7 +164,7 @@ export default function Home() {
               {areaRows.map((a) => (
                 <div key={`${a.area}-${a.city}`} className="card p-4">
                   <p className="font-bold">{a.area}</p>
-                  <p className="text-xs text-neutral-400">{a.city}</p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">{a.city}</p>
                   <div className="mt-3 flex items-center gap-4 text-sm">
                     <span><span className="font-semibold">{bn(a.reportCount)}</span> <span className="text-neutral-400">রিপোর্ট</span></span>
                     {a.avgRating ? (
@@ -190,20 +190,10 @@ export default function Home() {
         <div className="card p-8 flex flex-col sm:flex-row items-center justify-between gap-6 bg-brand-600 text-white !border-none">
           <div>
             <h3 className="text-xl font-bold">আপনার অভিজ্ঞতা অন্য একজনকে সঠিক সিদ্ধান্ত নিতে সাহায্য করতে পারে।</h3>
-            <p className="text-brand-100 mt-1 text-sm">অ্যাকাউন্ট ছাড়াই, বেনামে — বাড়িওয়ালা, বাসা বা এলাকার অভিজ্ঞতা লিখুন।</p>
+            <p className="text-brand-50 mt-1 text-sm">অ্যাকাউন্ট ছাড়াই, বেনামে — বাড়িওয়ালা, বাসা বা এলাকার অভিজ্ঞতা লিখুন।</p>
           </div>
           <Link to="/report-issue" className="btn-secondary !text-brand-700 whitespace-nowrap">✎ অভিজ্ঞতা শেয়ার করুন</Link>
         </div>
-      </section>
-
-      {/* 08 Support */}
-      <section className="container-page pb-16 text-center">
-        <p className="text-sm text-neutral-500">
-          RentCheck BD একটি স্বাধীন, কমিউনিটি-চালিত প্রকল্প।{" "}
-          <a href={SUPPORT_URL} target="_blank" rel="noopener noreferrer" className="text-amber-700 font-medium hover:underline">
-            ☕ Support করুন
-          </a>
-        </p>
       </section>
     </div>
   );
@@ -213,7 +203,7 @@ function StatBox({ value, label, isText }) {
   return (
     <div>
       <p className={`font-extrabold ${isText ? "text-lg" : "text-3xl"}`}>{value}</p>
-      <p className="text-xs text-neutral-400 mt-0.5">{label}</p>
+      <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">{label}</p>
     </div>
   );
 }
