@@ -9,6 +9,7 @@ import PropertyDetail from "./pages/PropertyDetail.jsx";
 import LandlordDetail from "./pages/LandlordDetail.jsx";
 import Login from "./pages/Login.jsx";
 import Register from "./pages/Register.jsx";
+import VerifyEmail from "./pages/VerifyEmail.jsx";
 import SubmitReview from "./pages/SubmitReview.jsx";
 import ReportIssue from "./pages/ReportIssue.jsx";
 import ReportsFeed from "./pages/ReportsFeed.jsx";
@@ -40,6 +41,7 @@ export default function App() {
           <Route path="/report-issue" element={<ReportIssue />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
 
           <Route
             path="/dashboard"

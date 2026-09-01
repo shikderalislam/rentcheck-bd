@@ -1,7 +1,27 @@
 import asyncHandler from "express-async-handler";
+import crypto from "crypto";
 import validator from "validator";
 import User from "../models/User.js";
 import { generateToken, setTokenCookie } from "../utils/generateToken.js";
+
+const isProd = () => process.env.NODE_ENV === "production";
+
+function newVerificationToken() {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+// In a real deployment this sends an email. With no mail provider configured we
+// log the link and (in non-production only) hand it back to the client so the
+// "one-click verify" button in the UI can work during development.
+function issueVerification(user) {
+  const token = newVerificationToken();
+  user.emailVerificationToken = token;
+  user.emailVerificationSentAt = new Date();
+  const base = process.env.CLIENT_URL || "http://localhost:5173";
+  const verifyUrl = `${base}/verify-email?token=${token}`;
+  console.log(`[email] verification link for ${user.email}: ${verifyUrl}`);
+  return isProd() ? { emailSent: true } : { verifyUrl, devToken: token };
+}
 
 // @route POST /api/auth/register
 export const register = asyncHandler(async (req, res) => {
@@ -36,10 +56,18 @@ export const register = asyncHandler(async (req, res) => {
     role: finalRole,
   });
 
+  const verification = issueVerification(user);
+  await user.save();
+
   const token = generateToken(user._id, user.role);
   setTokenCookie(res, token);
 
-  res.status(201).json({ success: true, user: user.toPublicJSON(), token });
+  res.status(201).json({
+    success: true,
+    user: user.toPublicJSON(),
+    token,
+    verification, // { verifyUrl, devToken } in dev, { emailSent:true } in prod
+  });
 });
 
 // @route POST /api/auth/login
@@ -68,6 +96,35 @@ export const login = asyncHandler(async (req, res) => {
   setTokenCookie(res, token);
 
   res.json({ success: true, user: user.toPublicJSON(), token });
+});
+
+// @route POST /api/auth/verify-email   Body: { token }
+export const verifyEmail = asyncHandler(async (req, res) => {
+  const { token } = req.body;
+  if (!token) {
+    res.status(400);
+    throw new Error("Verification token is required");
+  }
+  const user = await User.findOne({ emailVerificationToken: token }).select("+emailVerificationToken");
+  if (!user) {
+    res.status(400);
+    throw new Error("This verification link is invalid or already used");
+  }
+  user.isEmailVerified = true;
+  user.emailVerificationToken = undefined;
+  if (user.trustLevel < 1) user.trustLevel = 1;
+  await user.save();
+  res.json({ success: true, user: user.toPublicJSON() });
+});
+
+// @route POST /api/auth/resend-verification   (auth)
+export const resendVerification = asyncHandler(async (req, res) => {
+  if (req.user.isEmailVerified) {
+    return res.json({ success: true, message: "Your email is already verified" });
+  }
+  const verification = issueVerification(req.user);
+  await req.user.save();
+  res.json({ success: true, verification });
 });
 
 // @route POST /api/auth/logout

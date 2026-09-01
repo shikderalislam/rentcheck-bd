@@ -150,7 +150,7 @@ export default function PropertyForm({ initial, onDone, onCancel }) {
 
       <Card title="১ · মৌলিক তথ্য">
         <L label="Property name *"><input className="input" value={f.name} onChange={(e) => set("name", e.target.value)} placeholder="Green View Apartment" /></L>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <L label="Type *">
             <select className="input" value={f.propertyType} onChange={(e) => set("propertyType", e.target.value)}>
               {TYPES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
@@ -166,7 +166,7 @@ export default function PropertyForm({ initial, onDone, onCancel }) {
       </Card>
 
       <Card title="২ · অবস্থান">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <L label="Division *">
             <select className="input" value={f.address.division} onChange={(e) => setIn("address", "division", e.target.value)}>
               <option value="">—</option>
@@ -184,7 +184,7 @@ export default function PropertyForm({ initial, onDone, onCancel }) {
       </Card>
 
       <Card title="৩ · বিস্তারিত">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <L label="Bedrooms"><input type="number" className="input" value={f.bedrooms} onChange={(e) => set("bedrooms", e.target.value)} /></L>
           <L label="Bathrooms"><input type="number" className="input" value={f.bathrooms} onChange={(e) => set("bathrooms", e.target.value)} /></L>
           <L label="Balconies"><input type="number" className="input" value={f.balconies} onChange={(e) => set("balconies", e.target.value)} /></L>
@@ -206,7 +206,7 @@ export default function PropertyForm({ initial, onDone, onCancel }) {
 
       <Card title="৪ · ভাড়ার তথ্য">
         <L label="Monthly rent (৳) *"><input type="number" className="input" value={f.rentDetails.monthly} onChange={(e) => setIn("rentDetails", "monthly", e.target.value)} /></L>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           <L label="Advance (months)"><input type="number" className="input" value={f.rentDetails.advanceMonths} onChange={(e) => setIn("rentDetails", "advanceMonths", e.target.value)} /></L>
           <L label="Service charge"><input type="number" className="input" value={f.rentDetails.serviceCharge} onChange={(e) => setIn("rentDetails", "serviceCharge", e.target.value)} /></L>
           <L label="Parking charge"><input type="number" className="input" value={f.rentDetails.parkingCharge} onChange={(e) => setIn("rentDetails", "parkingCharge", e.target.value)} /></L>
@@ -242,7 +242,7 @@ export default function PropertyForm({ initial, onDone, onCancel }) {
       </Card>
 
       <Card title="৭ · যোগাযোগ (ফ্রি)">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <L label="Contact name"><input className="input" value={f.contact.name} onChange={(e) => setIn("contact", "name", e.target.value)} /></L>
           <L label="Phone"><input className="input" value={f.contact.phone} onChange={(e) => setIn("contact", "phone", e.target.value)} /></L>
           <L label="WhatsApp"><input className="input" value={f.contact.whatsapp} onChange={(e) => setIn("contact", "whatsapp", e.target.value)} /></L>

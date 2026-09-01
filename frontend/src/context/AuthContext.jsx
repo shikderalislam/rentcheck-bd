@@ -11,8 +11,10 @@ export function AuthProvider({ children }) {
     try {
       const { data } = await api.get("/auth/me");
       setUser(data.user);
+      return data.user;
     } catch {
       setUser(null);
+      return null;
     } finally {
       setLoading(false);
     }
@@ -31,7 +33,7 @@ export function AuthProvider({ children }) {
   const register = async (payload) => {
     const { data } = await api.post("/auth/register", payload);
     setUser(data.user);
-    return data.user;
+    return data; // { user, token, verification }
   };
 
   const logout = async () => {
@@ -39,8 +41,22 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  // Verifies with a token (from the email link / dev token) and refreshes user.
+  const verifyEmail = async (token) => {
+    const { data } = await api.post("/auth/verify-email", { token });
+    setUser(data.user);
+    return data.user;
+  };
+
+  const resendVerification = async () => {
+    const { data } = await api.post("/auth/resend-verification");
+    return data.verification; // { verifyUrl, devToken } in dev
+  };
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, refresh: fetchMe }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, register, logout, verifyEmail, resendVerification, refresh: fetchMe }}
+    >
       {children}
     </AuthContext.Provider>
   );

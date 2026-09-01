@@ -20,6 +20,8 @@ const userSchema = new mongoose.Schema(
     },
     avatarUrl: { type: String, default: "" },
     isEmailVerified: { type: Boolean, default: false },
+    emailVerificationToken: { type: String, select: false },
+    emailVerificationSentAt: { type: Date },
     profileVisibility: {
       type: String,
       enum: ["public", "private"],

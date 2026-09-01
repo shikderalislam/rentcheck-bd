@@ -33,3 +33,45 @@ body {
 .badge {
   @apply inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium;
 }
+
+.input {
+  @apply transition-shadow;
+}
+
+/* --- motion --- */
+@keyframes rc-fade-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes rc-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-up {
+  animation: rc-fade-up 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.animate-fade-in {
+  animation: rc-fade-in 0.4s ease both;
+}
+
+/* lift cards on hover where opted in */
+.card-hover {
+  @apply transition duration-200;
+}
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 30px -12px rgba(16, 24, 40, 0.18);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-up,
+  .animate-fade-in {
+    animation: none;
+  }
+  .card-hover:hover {
+    transform: none;
+  }
+  html {
+    scroll-behavior: auto;
+  }
+}

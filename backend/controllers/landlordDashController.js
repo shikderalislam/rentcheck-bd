@@ -213,6 +213,10 @@ export const getMyProperty = asyncHandler(async (req, res) => {
 
 // @route POST /api/landlord/properties
 export const createMyProperty = asyncHandler(async (req, res) => {
+  if (!req.user.isEmailVerified && req.user.role !== "super_admin" && req.user.role !== "admin") {
+    res.status(403);
+    throw new Error("Please verify your email address before listing a property.");
+  }
   const b = req.body || {};
   if (!b.name || !b.propertyType || !PROPERTY_TYPES.includes(b.propertyType)) {
     res.status(400);

@@ -9,17 +9,35 @@ import { roleGroupOf } from "../lib/roles.js";
  * @param {{key:string,label:string,icon?:string,badge?:number}[]} sections
  */
 export default function DashboardLayout({ title, sections, active, onSelect, children }) {
-  const { user, logout } = useAuth();
+  const { user, logout, resendVerification, verifyEmail } = useAuth();
   const { t } = useI18n();
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [verifyMsg, setVerifyMsg] = useState("");
 
   const roleKey = roleGroupOf(user);
 
   const doLogout = async () => {
     await logout();
     navigate("/");
+  };
+
+  const handleVerify = async () => {
+    setVerifying(true);
+    setVerifyMsg("");
+    try {
+      const v = await resendVerification();
+      if (v?.devToken) {
+        await verifyEmail(v.devToken);
+      } else {
+        setVerifyMsg("Verification link sent to your email.");
+      }
+    } catch {
+      setVerifyMsg("Could not verify right now.");
+    }
+    setVerifying(false);
   };
 
   const NavList = () => (
@@ -111,6 +129,19 @@ export default function DashboardLayout({ title, sections, active, onSelect, chi
           </div>
         </header>
 
+        {user && !user.isEmailVerified && (
+          <div className="bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-900/40 px-4 sm:px-6 py-2 flex flex-wrap items-center gap-3 text-sm text-amber-800 dark:text-amber-200 animate-fade-in">
+            <span>📧 আপনার ইমেইল ({user.email}) এখনো ভেরিফাই হয়নি।</span>
+            {verifyMsg ? (
+              <span className="font-medium">{verifyMsg}</span>
+            ) : (
+              <button onClick={handleVerify} disabled={verifying} className="font-semibold underline decoration-dotted hover:text-amber-900">
+                {verifying ? "…" : "এখনই ভেরিফাই করুন"}
+              </button>
+            )}
+          </div>
+        )}
+
         <main className="p-4 sm:p-6 max-w-7xl">{children}</main>
       </div>
     </div>
@@ -120,7 +151,7 @@ export default function DashboardLayout({ title, sections, active, onSelect, chi
 /* Small shared building blocks for dashboard pages */
 export function StatCard({ label, value, sub }) {
   return (
-    <div className="card p-4">
+    <div className="card p-4 animate-fade-up">
       <p className="text-xs text-neutral-500">{label}</p>
       <p className="text-2xl font-bold mt-1">{value ?? 0}</p>
       {sub && <p className="text-xs text-neutral-400 mt-0.5">{sub}</p>}
