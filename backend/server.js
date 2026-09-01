@@ -24,6 +24,12 @@ await connectDB();
 
 const app = express();
 
+// Running behind a reverse proxy (Railway / Render / Fly / nginx / Vercel).
+// Trust the first hop so req.ip and express-rate-limit see the real client IP
+// from X-Forwarded-For instead of the proxy's address (otherwise every request
+// shares one rate-limit bucket and 429s immediately).
+app.set("trust proxy", 1);
+
 app.use(helmet());
 app.use(
   cors({
@@ -35,9 +41,11 @@ app.use(express.json({ limit: "2mb" }));
 app.use(cookieParser());
 app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
 
-// Basic global rate limiting — auth routes get a stricter limiter
-const globalLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 300 });
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 30 });
+// Basic global rate limiting — auth routes get a stricter limiter.
+// Bangladeshi mobile networks NAT many users behind few IPs, so keep the
+// global cap generous; abuse-sensitive routes have their own tight limiters.
+const globalLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 1200, standardHeaders: true, legacyHeaders: false });
+const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 40, standardHeaders: true, legacyHeaders: false });
 app.use("/api", globalLimiter);
 app.use("/api/auth", authLimiter);
 
