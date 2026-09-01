@@ -1,0 +1,9 @@
+{
+  "$comment": "Proxies /api/* to your backend so the browser sees ONE origin (no cross-domain cookie issues). Replace the host below with your Render/Railway/Fly backend URL, then redeploy.",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://YOUR-BACKEND.onrender.com/api/:path*"
+    }
+  ]
+}
