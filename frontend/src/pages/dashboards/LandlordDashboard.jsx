@@ -5,6 +5,7 @@ import { useAuth } from "../../context/AuthContext.jsx";
 import { useI18n } from "../../lib/i18n.jsx";
 import DashboardLayout, { StatCard } from "../../components/DashboardLayout.jsx";
 import RatingStars from "../../components/RatingStars.jsx";
+import PropertyForm from "../../components/PropertyForm.jsx";
 import { timeAgoBn } from "../../lib/reportLabels.js";
 
 export default function LandlordDashboard() {
@@ -14,57 +15,64 @@ export default function LandlordDashboard() {
   const sections = [
     { key: "overview", label: t("dash.overview"), icon: "▦" },
     { key: "properties", label: t("dash.myProperties"), icon: "🏢" },
+    { key: "add", label: t("dash.addProperty"), icon: "＋" },
     { key: "reviews", label: t("dash.reviewsAboutMe"), icon: "★" },
     { key: "verification", label: t("dash.verification"), icon: "✔" },
   ];
   return (
     <DashboardLayout title={t("role.LANDLORD")} sections={sections} active={active} onSelect={setActive}>
-      <LandlordBody active={active} user={user} />
+      <Body active={active} user={user} setActive={setActive} />
     </DashboardLayout>
   );
 }
 
-function LandlordBody({ active, user }) {
+function Body({ active, setActive }) {
   const { t } = useI18n();
-  const [summary, setSummary] = useState(undefined); // undefined=loading, null=no profile
-  useEffect(() => {
-    api.get("/landlord/summary").then((r) => setSummary(r.data.hasProfile ? r.data : null)).catch(() => setSummary(null));
+  const [summary, setSummary] = useState(undefined);
+  const reload = useCallback(() => {
+    api.get("/landlord/summary").then((r) => setSummary(r.data.hasProfile ? r.data : { hasProfile: false })).catch(() => setSummary({ hasProfile: false }));
   }, []);
+  useEffect(() => {
+    reload();
+  }, [reload]);
 
   if (summary === undefined) return <p className="text-neutral-400">{t("dash.loading")}</p>;
 
-  if (summary === null) {
+  if (active === "add") return <AddProperty onDone={() => { reload(); setActive("properties"); }} />;
+  if (active === "properties") return <MyProperties onAdd={() => setActive("add")} />;
+  if (active === "reviews") return <Reviews />;
+
+  if (!summary.hasProfile) {
     return (
       <div className="card p-8 max-w-lg">
-        <p className="font-semibold mb-1">No landlord profile linked yet</p>
+        <p className="font-semibold mb-1">No landlord profile yet</p>
         <p className="text-sm text-neutral-500 mb-4">
-          Claim your landlord profile from its public page. Once a super admin verifies the claim, your properties and the
-          reviews about you will appear here.
+          Add your first property and a landlord profile is created for you automatically. A super admin verifies it later
+          so you can post public responses to reviews.
         </p>
-        <Link to="/search?type=landlord" className="btn-primary">Find my profile</Link>
+        <button className="btn-primary" onClick={() => setActive("add")}>＋ {t("dash.addProperty")}</button>
       </div>
     );
   }
 
-  if (active === "overview") return <Overview data={summary} />;
-  if (active === "properties") return <Properties data={summary} />;
-  if (active === "reviews") return <Reviews />;
+  if (active === "overview") return <Overview data={summary} onAdd={() => setActive("add")} />;
   if (active === "verification") return <Verification landlord={summary.landlord} />;
   return null;
 }
 
-function Overview({ data }) {
+function Overview({ data, onAdd }) {
   const { t } = useI18n();
   const s = data.summary;
   return (
     <div>
-      <div className="flex items-center gap-3 mb-6">
+      <div className="flex items-center justify-between mb-6 gap-4 flex-wrap">
         <div>
           <p className="text-lg font-bold">{data.landlord.name}</p>
-          <p className="text-xs text-neutral-400">
+          <p className="text-xs text-neutral-500">
             {data.landlord.isVerified ? "✔ Verified landlord" : "Not verified"} · reputation {data.landlord.reputation?.overall || 0} / 5
           </p>
         </div>
+        <button className="btn-primary !py-1.5 !px-4 text-sm" onClick={onAdd}>＋ {t("dash.addProperty")}</button>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         <StatCard label={t("dash.myProperties")} value={s.properties} />
@@ -73,7 +81,6 @@ function Overview({ data }) {
         <StatCard label="Response rate" value={`${s.responseRate}%`} />
         <StatCard label="Pending responses" value={s.pendingResponses} />
       </div>
-
       {data.recentReviews.length > 0 && (
         <div className="mt-8">
           <h2 className="font-semibold mb-3">Recent reviews</h2>
@@ -95,42 +102,88 @@ function Overview({ data }) {
   );
 }
 
-function Properties({ data }) {
-  if (!data.properties.length) return <div className="card p-8 text-center text-neutral-400">No properties linked to your profile.</div>;
+function MyProperties({ onAdd }) {
+  const { t } = useI18n();
+  const [rows, setRows] = useState(null);
+  const [editing, setEditing] = useState(null);
+
+  const load = useCallback(() => {
+    api.get("/landlord/properties").then((r) => setRows(r.data.properties)).catch(() => setRows([]));
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const del = async (p) => {
+    if (!window.confirm(`Remove this listing?\n\n"${p.name}"`)) return;
+    await api.delete(`/landlord/properties/${p.id}`);
+    load();
+  };
+
+  if (rows === null) return <p className="text-neutral-400">{t("dash.loading")}</p>;
+
+  if (editing) {
+    return <PropertyForm initial={editing} onCancel={() => setEditing(null)} onDone={() => { setEditing(null); load(); }} />;
+  }
+
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {data.properties.map((p) => (
-        <div key={p.id} className="card p-4">
-          <p className="font-semibold">{p.name}</p>
-          <p className="text-xs text-neutral-400">{p.area}, {p.city}</p>
-          <div className="mt-2 flex items-center gap-3 text-sm">
-            <RatingStars value={p.rating} size="text-xs" />
-            <span className="text-neutral-400">{p.reviewCount} reviews</span>
-          </div>
-          <p className="text-xs text-neutral-400 mt-1">{p.isVerified ? "✔ Verified" : "Unverified"}</p>
-          <Link to={`/properties/${p.slug}`} className="text-xs text-brand-600 mt-2 inline-block">View public page →</Link>
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="font-semibold">{t("dash.myProperties")} ({rows.length})</h2>
+        <button className="btn-primary !py-1.5 !px-4 text-sm" onClick={onAdd}>＋ {t("dash.addProperty")}</button>
+      </div>
+      {rows.length === 0 ? (
+        <div className="card p-8 text-center text-neutral-400">
+          {t("dash.nothing")} <button className="text-brand-600 font-medium" onClick={onAdd}>＋ {t("dash.addProperty")}</button>
         </div>
-      ))}
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {rows.map((p) => (
+            <div key={p.id} className="card p-4 flex flex-col">
+              {p.coverPhoto ? (
+                <img src={p.coverPhoto} alt="" className="h-32 w-full object-cover rounded-lg mb-2" />
+              ) : null}
+              <div className="flex items-center gap-2">
+                <span className={`badge ${p.listingStatus === "available" ? "bg-emerald-100 text-emerald-700" : "bg-neutral-100 text-neutral-500"}`}>
+                  {p.listingStatus}
+                </span>
+                {p.isVerified && <span className="badge bg-brand-100 text-brand-700">✔</span>}
+              </div>
+              <p className="font-semibold mt-1">{p.name}</p>
+              <p className="text-xs text-neutral-500">{p.address?.area}, {p.address?.city}</p>
+              <p className="text-sm mt-1">৳{(p.rentDetails?.monthly || p.rent?.min || 0).toLocaleString()} / month</p>
+              <div className="mt-3 flex gap-2 text-xs">
+                <button className="btn-secondary !py-1 !px-2" onClick={() => setEditing(p)}>Edit</button>
+                <Link to={`/properties/${p.slug}`} className="btn-secondary !py-1 !px-2">View</Link>
+                <button className="!py-1 !px-2 rounded-lg bg-rose-100 text-rose-700 hover:bg-rose-200" onClick={() => del(p)}>Delete</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
+}
+
+function AddProperty({ onDone }) {
+  return <PropertyForm onDone={onDone} onCancel={onDone} />;
 }
 
 function Reviews() {
   const { t } = useI18n();
   const [data, setData] = useState({ reviews: [], pagination: {} });
   const [filter, setFilter] = useState("");
-  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [respondTo, setRespondTo] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
-    const params = { page, limit: 20 };
+    const params = { limit: 30 };
     if (filter) params.responded = filter;
     const { data } = await api.get("/landlord/reviews", { params }).catch(() => ({ data: { reviews: [], pagination: {} } }));
     setData(data);
     setLoading(false);
-  }, [filter, page]);
+  }, [filter]);
   useEffect(() => {
     load();
   }, [load]);
@@ -197,9 +250,7 @@ function RespondModal({ review, onClose, onSaved }) {
     <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4" onClick={onClose}>
       <div className="card p-5 w-full max-w-md mt-16" onClick={(e) => e.stopPropagation()}>
         <h3 className="font-bold mb-2">Public response</h3>
-        <p className="text-xs text-neutral-500 mb-2">
-          Shown publicly under the review, labelled as the landlord's response. No names or phone numbers.
-        </p>
+        <p className="text-xs text-neutral-500 mb-2">Shown publicly under the review, labelled as the landlord's response. No names or phone numbers.</p>
         {err && <p className="text-sm text-rose-600 mb-2">{err}</p>}
         <textarea className="input min-h-[120px]" maxLength={1500} value={body} onChange={(e) => setBody(e.target.value)} />
         <div className="flex justify-end gap-2 mt-3">
@@ -218,8 +269,8 @@ function Verification({ landlord }) {
       <p className="text-2xl font-bold mt-1">{landlord.isVerified ? "✔ Verified" : "Not verified"}</p>
       <p className="text-sm text-neutral-500 mt-3">
         {landlord.isVerified
-          ? "Your ownership/management has been confirmed by our team. You can post public responses to reviews."
-          : "A super admin reviews landlord claims manually. Until then you can view reviews but not post public responses."}
+          ? "Your ownership/management has been confirmed. You can post public responses to reviews."
+          : "A super admin reviews landlord claims manually. Until then you can list properties and view reviews, but not post public responses."}
       </p>
     </div>
   );

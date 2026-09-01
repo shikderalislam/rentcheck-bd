@@ -11,7 +11,6 @@ export default function Home() {
   const navigate = useNavigate();
   const site = useSiteSettings();
   const hero = site.homeHero || {};
-  const announcement = site.announcement || {};
   const popularAreas = hero.popularAreas?.length ? hero.popularAreas : ["মিরপুর ১০", "উত্তরা", "ধানমন্ডি"];
   const [q, setQ] = useState("");
   const [stats, setStats] = useState(null);
@@ -42,13 +41,6 @@ export default function Home() {
 
   return (
     <div>
-      {/* Announcement */}
-      {announcement.enabled !== false && announcement.text && (
-        <div className="bg-brand-50 dark:bg-neutral-900 text-neutral-800 dark:text-neutral-100 text-xs sm:text-sm font-medium border-b border-neutral-200 dark:border-neutral-800">
-          <div className="container-page py-2 text-center">{announcement.text}</div>
-        </div>
-      )}
-
       {/* 02 Hero + 03 Search + popular areas */}
       <section className="border-b border-neutral-200 dark:border-neutral-800">
         <div className="container-page py-16 sm:py-20 max-w-3xl">
@@ -84,9 +76,22 @@ export default function Home() {
           </div>
 
           <div className="mt-7 flex flex-wrap gap-3">
-            <Link to="/search" className="btn-primary">বাসা খুঁজুন →</Link>
+            <Link to="/search" className="btn-primary">🏠 বাসা খুঁজুন</Link>
             <Link to="/report-issue" className="btn-secondary">✎ অভিজ্ঞতা শেয়ার করুন</Link>
           </div>
+        </div>
+      </section>
+
+      {/* নতুন বাসা খুঁজছেন? */}
+      <section className="container-page py-12">
+        <div className="rounded-2xl border-2 border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-900/20 p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+          <div>
+            <h2 className="text-xl font-bold text-neutral-900 dark:text-white">🏠 নতুন বাসা খুঁজছেন?</h2>
+            <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-1 max-w-xl">
+              ভাড়া, এলাকা, সুবিধা, বাড়িওয়ালা এবং আগের ভাড়াটিয়াদের অভিজ্ঞতা দেখে আপনার জন্য উপযুক্ত বাসা খুঁজে নিন।
+            </p>
+          </div>
+          <Link to="/search" className="btn-primary whitespace-nowrap shrink-0">বাসা খুঁজুন →</Link>
         </div>
       </section>
 
@@ -187,12 +192,12 @@ export default function Home() {
 
       {/* 07 আপনার অভিজ্ঞতা শেয়ার করুন */}
       <section className="container-page py-16">
-        <div className="card p-8 flex flex-col sm:flex-row items-center justify-between gap-6 bg-brand-600 text-white !border-none">
+        <div className="rounded-2xl border-l-4 border-brand-600 bg-neutral-50 dark:bg-neutral-900 p-6 sm:p-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
           <div>
-            <h3 className="text-xl font-bold">আপনার অভিজ্ঞতা অন্য একজনকে সঠিক সিদ্ধান্ত নিতে সাহায্য করতে পারে।</h3>
-            <p className="text-brand-50 mt-1 text-sm">অ্যাকাউন্ট ছাড়াই, বেনামে — বাড়িওয়ালা, বাসা বা এলাকার অভিজ্ঞতা লিখুন।</p>
+            <h3 className="text-xl font-bold text-neutral-900 dark:text-white">আপনার অভিজ্ঞতা অন্য একজনকে সঠিক সিদ্ধান্ত নিতে সাহায্য করতে পারে।</h3>
+            <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-1">অ্যাকাউন্ট ছাড়াই, বেনামে — বাড়িওয়ালা, বাসা বা এলাকার অভিজ্ঞতা লিখুন।</p>
           </div>
-          <Link to="/report-issue" className="btn-secondary !text-brand-700 whitespace-nowrap">✎ অভিজ্ঞতা শেয়ার করুন</Link>
+          <Link to="/report-issue" className="btn-primary whitespace-nowrap shrink-0">✎ অভিজ্ঞতা শেয়ার করুন</Link>
         </div>
       </section>
     </div>

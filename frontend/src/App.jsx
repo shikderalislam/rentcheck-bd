@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Navbar from "./components/Navbar.jsx";
 import Footer from "./components/Footer.jsx";
+import AnnouncementBar from "./components/AnnouncementBar.jsx";
 import RoleRoute from "./components/RoleRoute.jsx";
 import Home from "./pages/Home.jsx";
 import Search from "./pages/Search.jsx";
@@ -26,6 +27,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      {!isDash && <AnnouncementBar />}
       {!isDash && <Navbar />}
       <main className="flex-1">
         <Routes>

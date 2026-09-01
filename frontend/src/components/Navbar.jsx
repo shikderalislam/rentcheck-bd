@@ -25,7 +25,7 @@ export default function Navbar() {
           <Link to="/search" className="hover:text-brand-600">{t("nav.findHome")}</Link>
           <Link to="/search?type=area" className="hover:text-brand-600">{t("nav.areas")}</Link>
           <Link to="/search?type=landlord" className="hover:text-brand-600">{t("nav.landlords")}</Link>
-          <Link to="/reports" className="hover:text-brand-600">{t("nav.liveReports")}</Link>
+          <Link to="/report-issue" className="hover:text-brand-600">{t("nav.shareExperience")}</Link>
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
@@ -38,8 +38,8 @@ export default function Navbar() {
           ) : (
             <Link to="/login" className="btn-secondary !py-1.5 !px-3 text-sm">{t("nav.login")}</Link>
           )}
-          <Link to="/report-issue" className="btn-primary !py-1.5 !px-3 text-sm whitespace-nowrap">
-            {t("nav.shareExperience")}
+          <Link to="/search" className="btn-primary !py-1.5 !px-3 text-sm whitespace-nowrap">
+            🏠 {t("nav.findHome")}
           </Link>
         </div>
       </div>

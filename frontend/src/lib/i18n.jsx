@@ -25,6 +25,7 @@ const DICT = {
   "dash.settings": { bn: "সেটিংস", en: "Settings" },
   "dash.myProfile": { bn: "আমার প্রোফাইল", en: "My profile" },
   "dash.myProperties": { bn: "আমার বাড়ি", en: "My properties" },
+  "dash.addProperty": { bn: "নতুন বাসা যোগ করুন", en: "Add property" },
   "dash.tenantReports": { bn: "ভাড়াটিয়া রিপোর্ট", en: "Tenant reports" },
   "dash.reviewsAboutMe": { bn: "আমার সম্পর্কে রিভিউ", en: "Reviews about me" },
   "dash.responses": { bn: "উত্তর", en: "Responses" },
