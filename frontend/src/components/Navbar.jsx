@@ -61,14 +61,9 @@ export default function Navbar() {
               </button>
             </>
           ) : (
-            <>
-              <Link to="/login" className="text-sm font-medium text-neutral-700 dark:text-neutral-200 hover:text-brand-600">
-                {t("nav.login")}
-              </Link>
-              <Link to="/register" className="btn-primary !py-1.5 !px-4 text-sm">
-                {t("nav.signup")}
-              </Link>
-            </>
+            <Link to="/login" className="btn-primary !py-1.5 !px-4 text-sm">
+              {t("nav.login")}
+            </Link>
           )}
         </div>
 
@@ -111,10 +106,7 @@ export default function Navbar() {
                 </button>
               </>
             ) : (
-              <div className="flex gap-3 pt-1">
-                <Link to="/login" className="btn-secondary !py-2 flex-1 text-sm">{t("nav.login")}</Link>
-                <Link to="/register" className="btn-primary !py-2 flex-1 text-sm">{t("nav.signup")}</Link>
-              </div>
+              <Link to="/login" className="btn-primary !py-2 text-sm mt-1">{t("nav.login")}</Link>
             )}
           </div>
         </div>
