@@ -201,14 +201,14 @@ function ReportCard({ r, confirmed, onConfirm }) {
       </div>
 
       <Link to={`/reports/${r.id}`} className="mt-2 block group">
-        <h3 className="font-bold group-hover:text-brand-600">{r.issueTitle}</h3>
+        <h3 className="font-bold group-hover:text-brand-600" data-no-translate>{r.issueTitle}</h3>
       </Link>
       <p className="text-xs text-neutral-400 mt-0.5">
         {r.propertyName ? `${r.propertyName} · ` : ""}
         {r.area ? `${r.area}, ` : ""}{r.city} · {timeAgoBn(r.createdAt)}
       </p>
 
-      <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-3 line-clamp-3">{r.excerpt}</p>
+      <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-3 line-clamp-3" data-no-translate>{r.excerpt}</p>
 
       {r.issues?.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">

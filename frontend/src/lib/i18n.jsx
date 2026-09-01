@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { setAutoTranslateLang, onTranslateBusy } from "./autoTranslate.js";
 
 // Lightweight i18n for app chrome (nav, dashboards, common labels). Public
 // marketing copy stays authored in Bangla. Strings fall back to Bangla, then
@@ -74,6 +75,10 @@ export function I18nProvider({ children }) {
       /* ignore */
     }
     document.documentElement.lang = lang;
+    // Kick the whole-site machine translation for anything not covered by DICT.
+    // Runs after paint so React has committed the current view.
+    const id = requestAnimationFrame(() => setAutoTranslateLang(lang));
+    return () => cancelAnimationFrame(id);
   }, [lang]);
 
   const setLang = useCallback((l) => setLangState(l === "en" ? "en" : "bn"), []);
@@ -93,17 +98,27 @@ export const useI18n = () => useContext(I18nContext);
 
 export function LangToggle({ className = "" }) {
   const { lang, setLang } = useI18n();
+  const [busy, setBusy] = useState(false);
+  useEffect(() => onTranslateBusy(setBusy), []);
   return (
-    <div className={`inline-flex rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden text-xs font-semibold ${className}`}>
-      {["bn", "en"].map((l) => (
-        <button
-          key={l}
-          onClick={() => setLang(l)}
-          className={`px-2.5 py-1 ${lang === l ? "bg-brand-600 text-white" : "text-neutral-500 hover:bg-neutral-50 dark:hover:bg-neutral-800"}`}
-        >
-          {l === "bn" ? "বাংলা" : "EN"}
-        </button>
-      ))}
+    <div className={`inline-flex items-center gap-1.5 ${className}`}>
+      <div className="inline-flex rounded-lg border border-neutral-200 dark:border-neutral-700 overflow-hidden text-xs font-semibold">
+        {["bn", "en"].map((l) => (
+          <button
+            key={l}
+            onClick={() => setLang(l)}
+            className={`px-2.5 py-1 ${lang === l ? "bg-brand-600 text-white" : "text-neutral-500 hover:bg-neutral-50 dark:hover:bg-neutral-800"}`}
+          >
+            {l === "bn" ? "বাংলা" : "EN"}
+          </button>
+        ))}
+      </div>
+      {busy && (
+        <span
+          className="h-3 w-3 rounded-full border-2 border-brand-500 border-t-transparent animate-spin"
+          title="Translating…"
+        />
+      )}
     </div>
   );
 }

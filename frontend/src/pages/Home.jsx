@@ -143,11 +143,11 @@ export default function Home() {
                   <span className="text-xs text-neutral-400">{CATEGORY_LABELS[r.category] || r.category}</span>
                   {r.overallRating ? <RatingStars value={r.overallRating} size="text-xs" showValue={false} /> : null}
                 </div>
-                <p className="font-medium mt-1 line-clamp-2">{r.issueTitle}</p>
+                <p className="font-medium mt-1 line-clamp-2" data-no-translate>{r.issueTitle}</p>
                 <p className="text-xs text-neutral-400 mt-0.5">
                   {r.area ? `${r.area}, ` : ""}{r.city} · {timeAgoBn(r.createdAt)}
                 </p>
-                <p className="text-sm text-neutral-500 mt-2 line-clamp-3 flex-1">{r.excerpt}</p>
+                <p className="text-sm text-neutral-500 mt-2 line-clamp-3 flex-1" data-no-translate>{r.excerpt}</p>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-3">▲ {bn(r.confirmations)} জন নিশ্চিত করেছেন · অযাচাইকৃত</p>
               </Link>
             ))}

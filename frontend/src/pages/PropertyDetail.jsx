@@ -36,7 +36,7 @@ export default function PropertyDetail() {
         <div className="lg:col-span-2 space-y-6">
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-2xl font-bold">{property.name}</h1>
+              <h1 className="text-2xl font-bold" data-no-translate>{property.name}</h1>
               {property.isVerified && <span className="badge bg-brand-100 text-brand-700">✓ Verified Property</span>}
             </div>
             <p className="text-neutral-500 mt-1">
@@ -96,7 +96,10 @@ export default function PropertyDetail() {
             <div className="card p-5">
               <p className="font-semibold mb-1">📞 বাড়িওয়ালার সাথে যোগাযোগ করুন</p>
               {property.contact.name && (
-                <p className="text-sm">{property.contact.name} {property.isVerified && <span className="text-brand-600">✓ Verified</span>}</p>
+                <p className="text-sm">
+                  <span data-no-translate>{property.contact.name}</span>{" "}
+                  {property.isVerified && <span className="text-brand-600">✓ Verified</span>}
+                </p>
               )}
               <div className="mt-3 space-y-2">
                 {property.contact.showPhone !== false && property.contact.phone && (
@@ -164,7 +167,7 @@ function RentBreakdown({ property }) {
       {property.amenities?.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
           {property.amenities.map((a) => (
-            <span key={a} className="badge bg-neutral-100 text-neutral-600">{a}</span>
+            <span key={a} className="badge bg-neutral-100 text-neutral-600" data-no-translate>{a}</span>
           ))}
         </div>
       )}

@@ -104,11 +104,11 @@ function MyReports() {
                 <span className="text-xs text-neutral-400">{CATEGORY_LABELS[r.category] || r.category}</span>
                 {r.overallRating ? <RatingStars value={r.overallRating} size="text-xs" showValue={false} /> : null}
               </div>
-              <p className="font-medium mt-1">{r.issueTitle}</p>
+              <p className="font-medium mt-1" data-no-translate>{r.issueTitle}</p>
               <p className="text-xs text-neutral-400">
                 {r.area ? `${r.area}, ` : ""}{r.city} · {r.confirmations} confirmations · {timeAgoBn(r.createdAt)}
               </p>
-              <p className="text-sm text-neutral-500 mt-1 line-clamp-2">{r.description}</p>
+              <p className="text-sm text-neutral-500 mt-1 line-clamp-2" data-no-translate>{r.description}</p>
             </div>
             <div className="flex flex-col gap-2 shrink-0">
               {["PENDING", "APPROVED", "DISPUTED"].includes(r.status) && (

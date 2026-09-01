@@ -49,8 +49,8 @@ export default function ReviewCard({ review }) {
         <RatingStars value={review.overallRating} showValue={false} />
       </div>
 
-      {review.title && <h4 className="mt-3 font-semibold">{review.title}</h4>}
-      <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300">{review.body}</p>
+      {review.title && <h4 className="mt-3 font-semibold" data-no-translate>{review.title}</h4>}
+      <p className="mt-1 text-sm text-neutral-600 dark:text-neutral-300" data-no-translate>{review.body}</p>
 
       {(review.pros?.length > 0 || review.cons?.length > 0) && (
         <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
@@ -58,7 +58,7 @@ export default function ReviewCard({ review }) {
             <div>
               <p className="font-medium text-brand-700 mb-1">Positives</p>
               <ul className="list-disc list-inside text-neutral-500 space-y-0.5">
-                {review.pros.map((p, i) => <li key={i}>{p}</li>)}
+                {review.pros.map((p, i) => <li key={i} data-no-translate>{p}</li>)}
               </ul>
             </div>
           )}
@@ -66,7 +66,7 @@ export default function ReviewCard({ review }) {
             <div>
               <p className="font-medium text-rose-600 mb-1">Common concerns</p>
               <ul className="list-disc list-inside text-neutral-500 space-y-0.5">
-                {review.cons.map((c, i) => <li key={i}>{c}</li>)}
+                {review.cons.map((c, i) => <li key={i} data-no-translate>{c}</li>)}
               </ul>
             </div>
           )}
@@ -76,7 +76,7 @@ export default function ReviewCard({ review }) {
       {review.landlordResponse?.body && (
         <div className="mt-4 rounded-xl bg-neutral-50 dark:bg-neutral-800/60 p-3 text-sm">
           <p className="font-medium mb-1">Response from the landlord</p>
-          <p className="text-neutral-600 dark:text-neutral-300">{review.landlordResponse.body}</p>
+          <p className="text-neutral-600 dark:text-neutral-300" data-no-translate>{review.landlordResponse.body}</p>
         </div>
       )}
 

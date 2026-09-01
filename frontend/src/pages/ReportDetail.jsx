@@ -90,7 +90,7 @@ export default function ReportDetail() {
       <div className="mt-3 flex items-start justify-between gap-4">
         <div>
           <span className="badge bg-neutral-100 dark:bg-neutral-800 text-neutral-500">{CATEGORY_LABELS[r.category] || r.category}</span>
-          <h1 className="text-2xl font-extrabold mt-2">{r.issueTitle}</h1>
+          <h1 className="text-2xl font-extrabold mt-2" data-no-translate>{r.issueTitle}</h1>
           <p className="text-sm text-neutral-400 mt-1">
             {r.propertyName ? `${r.propertyName} · ` : ""}
             {r.area ? `${r.area}, ` : ""}{r.city}, {r.division} · {timeAgoBn(r.createdAt)}
@@ -108,11 +108,12 @@ export default function ReportDetail() {
         Tenant reported · অযাচাইকৃত অভিজ্ঞতা{r.rentalDuration ? ` · থেকেছেন ${DURATION_LABELS[r.rentalDuration]}` : ""}
       </p>
 
-      <p className="mt-5 text-neutral-700 dark:text-neutral-200 whitespace-pre-line">{r.description}</p>
+      <p className="mt-5 text-neutral-700 dark:text-neutral-200 whitespace-pre-line" data-no-translate>{r.description}</p>
 
       {r.landlordBehavior && (
         <p className="mt-3 text-sm text-neutral-500 border-l-2 border-neutral-300 dark:border-neutral-700 pl-3">
-          বাড়িওয়ালার আচরণ: {r.landlordBehavior}
+          <span>বাড়িওয়ালার আচরণ: </span>
+          <span data-no-translate>{r.landlordBehavior}</span>
         </p>
       )}
       {r.communicationQuality && COMMUNICATION_LABELS[r.communicationQuality] && (
@@ -183,7 +184,7 @@ export default function ReportDetail() {
         <div className="space-y-2">
           {(r.comments || []).map((c) => (
             <div key={c.id} className="text-sm bg-neutral-50 dark:bg-neutral-800/50 rounded-lg p-2">
-              <p>{c.body}</p>
+              <p data-no-translate>{c.body}</p>
               <p className="text-[10px] text-neutral-400 mt-1">{timeAgoBn(c.createdAt)}</p>
             </div>
           ))}

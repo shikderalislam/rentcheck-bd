@@ -91,7 +91,7 @@ function Overview({ data, onAdd }) {
                   <RatingStars value={r.overallRating} size="text-xs" />
                   <span className="text-xs text-neutral-400">{r.property?.name} · {timeAgoBn(r.createdAt)}</span>
                 </div>
-                <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-1 line-clamp-2">{r.body}</p>
+                <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-1 line-clamp-2" data-no-translate>{r.body}</p>
                 {!r.hasResponse && <p className="text-xs text-amber-700 mt-1">No response yet</p>}
               </div>
             ))}
@@ -149,7 +149,7 @@ function MyProperties({ onAdd }) {
                 </span>
                 {p.isVerified && <span className="badge bg-brand-100 text-brand-700">✔</span>}
               </div>
-              <p className="font-semibold mt-1">{p.name}</p>
+              <p className="font-semibold mt-1" data-no-translate>{p.name}</p>
               <p className="text-xs text-neutral-500">{p.address?.area}, {p.address?.city}</p>
               <p className="text-sm mt-1">৳{(p.rentDetails?.monthly || p.rent?.min || 0).toLocaleString()} / month</p>
               <div className="mt-3 flex gap-2 text-xs">
@@ -212,7 +212,7 @@ function Reviews() {
                 </span>
               </div>
               <p className="text-[11px] text-neutral-400 mt-1">Tenant report — anonymous</p>
-              <p className="text-sm text-neutral-700 dark:text-neutral-200 mt-1">{r.body}</p>
+              <p className="text-sm text-neutral-700 dark:text-neutral-200 mt-1" data-no-translate>{r.body}</p>
               {r.landlordResponse ? (
                 <div className="mt-3 rounded-lg bg-neutral-50 dark:bg-neutral-800/60 p-3 text-sm">
                   <p className="font-medium mb-1">Your response</p>
