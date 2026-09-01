@@ -12,6 +12,7 @@ import SubmitReview from "./pages/SubmitReview.jsx";
 import AdminDashboard from "./pages/AdminDashboard.jsx";
 import ReportIssue from "./pages/ReportIssue.jsx";
 import ReportsFeed from "./pages/ReportsFeed.jsx";
+import ReportDetail from "./pages/ReportDetail.jsx";
 import { useAuth } from "./context/AuthContext.jsx";
 
 function PrivateRoute({ children, roles }) {
@@ -33,6 +34,7 @@ export default function App() {
           <Route path="/properties/:slug" element={<PropertyDetail />} />
           <Route path="/landlords/:slug" element={<LandlordDetail />} />
           <Route path="/reports" element={<ReportsFeed />} />
+          <Route path="/reports/:id" element={<ReportDetail />} />
           <Route path="/report-issue" element={<ReportIssue />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />

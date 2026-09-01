@@ -1,7 +1,16 @@
 import express from "express";
 import rateLimit from "express-rate-limit";
+import { optionalAuth } from "../middleware/auth.js";
 import { getPublicStats, getRecentExperiences, getTopAreas } from "../controllers/publicController.js";
-import { submitReport, listReports, voteReport, getReportStats, addComment, getTransparencyLedger } from "../controllers/reportController.js";
+import {
+  submitReport,
+  listReports,
+  getReport,
+  confirmReport,
+  getReportStats,
+  getReportsByArea,
+  addComment,
+} from "../controllers/reportController.js";
 
 const router = express.Router();
 
@@ -9,15 +18,18 @@ router.get("/stats", getPublicStats);
 router.get("/recent-experiences", getRecentExperiences);
 router.get("/top-areas", getTopAreas);
 
-// Anonymous issue reports (no auth) — stricter rate limit since there's no account to tie abuse to
+// Anonymous rental experiences (no auth). Stricter limits since there is no
+// account to tie abuse to.
 const reportSubmitLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 10 });
 const commentLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 30 });
-const voteLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 120 });
+const confirmLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 100 });
+
 router.post("/reports", reportSubmitLimiter, submitReport);
 router.get("/reports", listReports);
-router.get("/reports/ledger", getTransparencyLedger);
 router.get("/reports/stats", getReportStats);
-router.post("/reports/:id/vote", voteLimiter, voteReport);
+router.get("/reports/by-area", getReportsByArea);
+router.get("/reports/:id", getReport);
+router.post("/reports/:id/confirm", confirmLimiter, optionalAuth, confirmReport);
 router.post("/reports/:id/comments", commentLimiter, addComment);
 
 export default router;

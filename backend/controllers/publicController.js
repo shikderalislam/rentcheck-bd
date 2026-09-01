@@ -2,26 +2,44 @@ import asyncHandler from "express-async-handler";
 import Property from "../models/Property.js";
 import Landlord from "../models/Landlord.js";
 import Review from "../models/Review.js";
+import Report from "../models/Report.js";
 
 // @route GET /api/public/stats
-// Powers the "Live Rental Ledger" counters on the homepage.
+// Powers the homepage "পরিসংখ্যান" counters. Community/rental data only — no money.
 export const getPublicStats = asyncHandler(async (req, res) => {
-  const [totalReviews, totalProperties, totalLandlords, areaAgg, lastReview] = await Promise.all([
+  const [
+    totalReviews,
+    totalReports,
+    totalProperties,
+    totalLandlords,
+    propertyAreas,
+    reportAreas,
+    confirmAgg,
+    lastReport,
+  ] = await Promise.all([
     Review.countDocuments({ status: "APPROVED" }),
+    Report.countDocuments({ status: "APPROVED" }),
     Property.countDocuments({ isDeleted: false }),
     Landlord.countDocuments(),
     Property.distinct("address.area", { isDeleted: false }),
-    Review.findOne({ status: "APPROVED" }).sort({ createdAt: -1 }).select("createdAt"),
+    Report.distinct("area", { status: "APPROVED", area: { $ne: "" } }),
+    Report.aggregate([{ $match: { status: "APPROVED" } }, { $group: { _id: null, total: { $sum: "$confirmations" } } }]),
+    Report.findOne({ status: "APPROVED" }).sort({ createdAt: -1 }).select("createdAt"),
   ]);
+
+  const areaSet = new Set([...propertyAreas, ...reportAreas].filter(Boolean).map((a) => a.toLowerCase()));
 
   res.json({
     success: true,
     stats: {
+      totalReports,
       totalReviews,
+      totalExperiences: totalReports + totalReviews,
       totalProperties,
       totalLandlords,
-      totalAreas: areaAgg.length,
-      lastUpdated: lastReview?.createdAt || null,
+      totalAreas: areaSet.size,
+      totalConfirmations: confirmAgg[0]?.total || 0,
+      lastUpdated: lastReport?.createdAt || null,
     },
   });
 });

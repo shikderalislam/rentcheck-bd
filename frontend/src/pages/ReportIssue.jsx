@@ -1,71 +1,119 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import api from "../api/axios.js";
+import {
+  CATEGORY_OPTIONS,
+  CATEGORY_RATING_FIELDS,
+  COMMUNICATION_LABELS,
+  DIVISIONS,
+  DIVISION_BN,
+  DURATION_LABELS,
+  ISSUE_OPTIONS,
+  POSITIVE_OPTIONS,
+  RECOMMENDATION_LABELS,
+} from "../lib/reportLabels.js";
 
-const CATEGORIES = [
-  ["deposit_not_returned", "জামানত ফেরত দেয়নি"],
-  ["unsafe_conditions", "অনিরাপদ বাসস্থান"],
-  ["harassment_privacy", "প্রাইভেসি লঙ্ঘন / হয়রানি"],
-  ["hidden_charges", "লুকানো চার্জ"],
-  ["agreement_violation", "চুক্তি ভঙ্গ"],
-  ["maintenance_ignored", "মেরামত করা হয়নি"],
-  ["eviction_threat", "উচ্ছেদের হুমকি"],
-  ["other", "অন্যান্য"],
-];
+function Stars({ value, onChange, size = "text-2xl" }) {
+  return (
+    <div className={`inline-flex gap-1 ${size}`}>
+      {[1, 2, 3, 4, 5].map((s) => (
+        <button
+          key={s}
+          type="button"
+          onClick={() => onChange(s === value ? 0 : s)}
+          className={s <= value ? "text-amber-500" : "text-neutral-300 dark:text-neutral-600 hover:text-amber-400"}
+          aria-label={`${s} star`}
+        >
+          ★
+        </button>
+      ))}
+    </div>
+  );
+}
 
-const DIVISIONS = ["Dhaka", "Chattogram", "Sylhet", "Rajshahi", "Khulna", "Barishal", "Rangpur", "Mymensingh"];
+function Chip({ active, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-full border px-3 py-1 text-sm ${
+        active
+          ? "border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-600/20 dark:text-brand-300"
+          : "border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 hover:border-brand-400"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
 
-const OUTCOMES = [
-  ["paid_or_lost", "আমি টাকা দিয়েছি / হারিয়েছি"],
-  ["refused", "আমি প্রত্যাখ্যান করেছি"],
-  ["pending", "এখনো মুলতুবি"],
-  ["resolved_fairly", "শেষমেশ ন্যায্যভাবে সমাধান হয়েছে"],
-];
-
-const COMMUNICATION = [
-  ["no_response", "একদমই সাড়া দেয়নি"],
-  ["hostile", "রূঢ় / হুমকিমূলক আচরণ"],
-  ["delayed", "দেরিতে ও এড়িয়ে যাওয়া উত্তর"],
-  ["dismissive", "সমস্যাকে গুরুত্ব দেয়নি"],
-  ["cooperative", "সহযোগিতাপূর্ণ ছিল"],
-];
+const EMPTY = {
+  category: "",
+  issueTitle: "",
+  propertyName: "",
+  division: "",
+  city: "",
+  area: "",
+  rentalDuration: "",
+  overallRating: 0,
+  categoryRatings: {},
+  issues: [],
+  positives: [],
+  recommendation: "",
+  communicationQuality: "",
+  landlordBehavior: "",
+  description: "",
+};
 
 export default function ReportIssue() {
-  const navigate = useNavigate();
-  const [form, setForm] = useState({
-    category: "",
-    issueTitle: "",
-    city: "",
-    division: "",
-    area: "",
-    claimedAmount: "",
-    outcome: "",
-    communicationQuality: "",
-    landlordBehavior: "",
-    description: "",
-  });
-  const [confirmed, setConfirmed] = useState(false);
+  const [form, setForm] = useState(EMPTY);
+  const [agreed, setAgreed] = useState(false);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
   const [published, setPublished] = useState(false);
+  const [reportId, setReportId] = useState(null);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+  const setCat = (k, v) => setForm((f) => ({ ...f, categoryRatings: { ...f.categoryRatings, [k]: v || undefined } }));
+  const toggle = (key, val) =>
+    setForm((f) => ({
+      ...f,
+      [key]: f[key].includes(val) ? f[key].filter((x) => x !== val) : [...f[key], val],
+    }));
 
   const submit = async (e) => {
     e.preventDefault();
     setError("");
-    if (!confirmed) {
-      setError("অনুগ্রহ করে নিশ্চিত করুন যে আপনি কোনো ব্যক্তির নাম উল্লেখ করেননি।");
+    if (!form.category || !form.issueTitle || !form.division || !form.city || !form.area) {
+      setError("সমস্যার ধরন, শিরোনাম, বিভাগ, শহর ও এলাকা পূরণ করুন।");
       return;
     }
+    if (!form.rentalDuration) {
+      setError("আপনি কতদিন ছিলেন তা নির্বাচন করুন।");
+      return;
+    }
+    if (!form.overallRating) {
+      setError("সার্বিক রেটিং দিন।");
+      return;
+    }
+    if (form.description.trim().length < 20) {
+      setError("আপনার অভিজ্ঞতা অন্তত ২০ অক্ষরে লিখুন।");
+      return;
+    }
+    if (!agreed) {
+      setError("প্রকাশের আগে সম্মতির ঘরে টিক দিন।");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const { data } = await api.post("/public/reports", form);
       setPublished(!!data.published);
+      setReportId(data.reportId);
       setDone(true);
     } catch (err) {
-      setError(err.response?.data?.message || "রিপোর্ট জমা দেওয়া যায়নি");
+      setError(err.response?.data?.message || "জমা দেওয়া যায়নি");
     } finally {
       setSubmitting(false);
     }
@@ -76,13 +124,18 @@ export default function ReportIssue() {
       <div className="container-page py-20 max-w-lg text-center">
         <div className="card p-10">
           <div className="text-4xl mb-3">✓</div>
-          <h1 className="text-xl font-bold mb-2">রিপোর্ট জমা হয়েছে</h1>
+          <h1 className="text-xl font-bold mb-2">আপনার অভিজ্ঞতা সফলভাবে জমা হয়েছে।</h1>
           <p className="text-neutral-500 text-sm mb-6">
             {published
-              ? "আপনার রিপোর্ট বেনামীভাবে লাইভ রিপোর্ট লেজারে প্রকাশিত হয়েছে। এখন অন্যরা এটি দেখতে ও ভোট দিতে পারবে।"
-              : "আপনার রিপোর্টে সম্ভাব্য শনাক্তকারী তথ্য পাওয়া গেছে, তাই এটি একজন মডারেটর পর্যালোচনার পর প্রকাশিত হবে।"}
+              ? "এটি বেনামীভাবে প্রকাশিত হয়েছে। এখন অন্য ভাড়াটিয়ারা এটি দেখতে ও নিশ্চিত করতে পারবে।"
+              : "সম্ভাব্য শনাক্তকারী তথ্য থাকায় প্রকাশের আগে আমাদের টিম এটি পর্যালোচনা করবে।"}
           </p>
-          <Link to="/reports" className="btn-primary">লাইভ রিপোর্ট দেখুন →</Link>
+          <div className="flex gap-3 justify-center">
+            {published && reportId && (
+              <Link to={`/reports/${reportId}`} className="btn-primary">রিপোর্ট দেখুন →</Link>
+            )}
+            <Link to="/reports" className="btn-secondary">সব রিপোর্ট</Link>
+          </div>
         </div>
       </div>
     );
@@ -91,131 +144,169 @@ export default function ReportIssue() {
   return (
     <div className="container-page py-10 max-w-xl">
       <Link to="/reports" className="text-sm text-neutral-400 hover:text-brand-600">← রিপোর্টে ফিরে যান</Link>
-      <h1 className="text-2xl font-bold mt-3">একটি বাড়িওয়ালা-সংক্রান্ত সমস্যা রিপোর্ট করুন</h1>
+      <h1 className="text-2xl font-bold mt-3">🏠 বাড়িওয়ালা সম্পর্কে আপনার অভিজ্ঞতা</h1>
       <p className="text-neutral-500 text-sm mt-1 mb-6">
-        বেনামী। কোনো অ্যাকাউন্ট নেই। কোনো পরিচয় ঘর নেই। প্রকাশের আগে পর্যালোচনা করা হয়।
+        আপনার অভিজ্ঞতা অন্য একজন ভাড়াটিয়াকে সঠিক সিদ্ধান্ত নিতে সাহায্য করতে পারে। বেনামী — কোনো অ্যাকাউন্ট লাগবে না।
       </p>
 
-      <div className="card p-4 mb-6 bg-neutral-50 dark:bg-neutral-800/50 text-sm">
-        <p className="font-medium mb-1">আমরা যা চাই না বা সংরক্ষণ করি না</p>
-        <ul className="text-neutral-500 grid grid-cols-2 gap-y-0.5">
-          <li>নাম</li><li>ইমেইল</li><li>ফোন</li><li>কাঁচা আইপি অ্যাড্রেস</li><li>ডিভাইস আইডি</li>
-        </ul>
-      </div>
-
-      <form onSubmit={submit} className="card p-6 space-y-4">
+      <form onSubmit={submit} className="card p-6 space-y-6">
         {error && <p className="text-sm text-rose-600">{error}</p>}
 
-        <div>
-          <label className="text-sm font-medium">সমস্যার ধরন</label>
-          <select className="input mt-1" required value={form.category} onChange={(e) => set("category", e.target.value)}>
-            <option value="">ধরন নির্বাচন করুন</option>
-            {CATEGORIES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
-        </div>
-
-        <div>
-          <label className="text-sm font-medium">সংক্ষিপ্ত শিরোনাম</label>
-          <input
-            className="input mt-1"
-            placeholder="যেমন: চুক্তির মেয়াদ শেষে জামানত ফেরত দেয়নি"
-            required
-            value={form.issueTitle}
-            onChange={(e) => set("issueTitle", e.target.value)}
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
+        {/* Property / location */}
+        <fieldset className="space-y-3">
+          <legend className="font-semibold">বাসা নির্বাচন</legend>
           <div>
-            <label className="text-sm font-medium">বিভাগ</label>
-            <select className="input mt-1" required value={form.division} onChange={(e) => set("division", e.target.value)}>
-              <option value="">বিভাগ নির্বাচন করুন</option>
-              {DIVISIONS.map((d) => <option key={d} value={d}>{d}</option>)}
+            <label className="text-sm font-medium">বাড়ি / বিল্ডিং নাম (ঐচ্ছিক)</label>
+            <input
+              className="input mt-1"
+              placeholder="যেমন: গ্রিন ভিউ অ্যাপার্টমেন্ট — ফ্ল্যাট নম্বর লিখবেন না"
+              value={form.propertyName}
+              onChange={(e) => set("propertyName", e.target.value)}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium">বিভাগ</label>
+              <select className="input mt-1" value={form.division} onChange={(e) => set("division", e.target.value)}>
+                <option value="">নির্বাচন করুন</option>
+                {DIVISIONS.map((d) => <option key={d} value={d}>{DIVISION_BN[d]}</option>)}
+              </select>
+            </div>
+            <div>
+              <label className="text-sm font-medium">শহর</label>
+              <input className="input mt-1" value={form.city} onChange={(e) => set("city", e.target.value)} />
+            </div>
+          </div>
+          <div>
+            <label className="text-sm font-medium">এলাকা</label>
+            <input
+              className="input mt-1"
+              placeholder="যেমন: মিরপুর ১০"
+              value={form.area}
+              onChange={(e) => set("area", e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="text-sm font-medium">সমস্যার ধরন</label>
+            <select className="input mt-1" value={form.category} onChange={(e) => set("category", e.target.value)}>
+              <option value="">নির্বাচন করুন</option>
+              {CATEGORY_OPTIONS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-sm font-medium">শহর</label>
-            <input className="input mt-1" required value={form.city} onChange={(e) => set("city", e.target.value)} />
+            <label className="text-sm font-medium">সংক্ষিপ্ত শিরোনাম</label>
+            <input
+              className="input mt-1"
+              placeholder="যেমন: বাড়িওয়ালা ভালো, কিন্তু maintenance এ দেরি"
+              value={form.issueTitle}
+              onChange={(e) => set("issueTitle", e.target.value)}
+            />
           </div>
-        </div>
+        </fieldset>
 
-        <div>
-          <label className="text-sm font-medium">আনুমানিক এলাকা (ঐচ্ছিক)</label>
-          <input
-            className="input mt-1"
-            placeholder="যেমন: মিরপুর ১০ — বাসার সুনির্দিষ্ট ঠিকানা লিখবেন না"
-            value={form.area}
-            onChange={(e) => set("area", e.target.value)}
-          />
-        </div>
+        {/* Duration */}
+        <fieldset className="space-y-2">
+          <legend className="font-semibold">আপনি কতদিন এই বাসায় ছিলেন?</legend>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(DURATION_LABELS).map(([v, l]) => (
+              <Chip key={v} active={form.rentalDuration === v} onClick={() => set("rentalDuration", v)}>{l}</Chip>
+            ))}
+          </div>
+        </fieldset>
 
-        <div>
-          <label className="text-sm font-medium">দাবিকৃত/হারানো পরিমাণ (৳, থাকলে)</label>
-          <input
-            type="number"
-            className="input mt-1"
-            value={form.claimedAmount}
-            onChange={(e) => set("claimedAmount", e.target.value)}
-          />
-        </div>
+        {/* Overall rating */}
+        <fieldset className="space-y-2">
+          <legend className="font-semibold">সার্বিক বাড়িওয়ালার রেটিং</legend>
+          <Stars value={form.overallRating} onChange={(v) => set("overallRating", v)} />
+        </fieldset>
 
-        <div>
-          <label className="text-sm font-medium">কী ঘটেছিল?</label>
-          <select className="input mt-1" required value={form.outcome} onChange={(e) => set("outcome", e.target.value)}>
-            <option value="">নির্বাচন করুন</option>
-            {OUTCOMES.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
-          </select>
-        </div>
+        {/* Category ratings */}
+        <fieldset className="space-y-2">
+          <legend className="font-semibold">বিস্তারিত রেটিং <span className="text-xs font-normal text-neutral-400">(ঐচ্ছিক)</span></legend>
+          <div className="space-y-1.5">
+            {CATEGORY_RATING_FIELDS.map(([k, label]) => (
+              <div key={k} className="flex items-center justify-between">
+                <span className="text-sm text-neutral-600 dark:text-neutral-300">{label}</span>
+                <Stars value={form.categoryRatings[k] || 0} onChange={(v) => setCat(k, v)} size="text-lg" />
+              </div>
+            ))}
+          </div>
+        </fieldset>
 
-        <div>
-          <label className="text-sm font-medium">বাড়িওয়ালার সাথে যোগাযোগ কেমন ছিল? (ঐচ্ছিক)</label>
+        {/* Issues */}
+        <fieldset className="space-y-2">
+          <legend className="font-semibold">কী সমস্যা হয়েছিল? <span className="text-xs font-normal text-neutral-400">(ঐচ্ছিক)</span></legend>
+          <div className="flex flex-wrap gap-2">
+            {ISSUE_OPTIONS.map(([v, l]) => (
+              <Chip key={v} active={form.issues.includes(v)} onClick={() => toggle("issues", v)}>{l}</Chip>
+            ))}
+          </div>
+        </fieldset>
+
+        {/* Positives */}
+        <fieldset className="space-y-2">
+          <legend className="font-semibold">ভালো কী লেগেছে? <span className="text-xs font-normal text-neutral-400">(ঐচ্ছিক)</span></legend>
+          <div className="flex flex-wrap gap-2">
+            {POSITIVE_OPTIONS.map(([v, l]) => (
+              <Chip key={v} active={form.positives.includes(v)} onClick={() => toggle("positives", v)}>{l}</Chip>
+            ))}
+          </div>
+        </fieldset>
+
+        {/* Communication + behavior */}
+        <fieldset className="space-y-3">
+          <legend className="font-semibold">যোগাযোগ ও আচরণ <span className="text-xs font-normal text-neutral-400">(ঐচ্ছিক)</span></legend>
           <select
-            className="input mt-1"
+            className="input"
             value={form.communicationQuality}
             onChange={(e) => set("communicationQuality", e.target.value)}
           >
-            <option value="">নির্বাচন করুন</option>
-            {COMMUNICATION.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+            <option value="">যোগাযোগ কেমন ছিল?</option>
+            {Object.entries(COMMUNICATION_LABELS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
           </select>
-        </div>
-
-        <div>
-          <label className="text-sm font-medium">বাড়িওয়ালা কেমন আচরণ করেছিল / কেন খারাপ আচরণ করল? (ঐচ্ছিক)</label>
           <textarea
-            className="input min-h-[80px] mt-1"
-            placeholder="যেমন: বারবার বলা সত্ত্বেও মেরামত করেনি, উল্টো অগ্রিম বাড়ানোর কথা বলে চাপ দিয়েছিল। কোনো নাম লিখবেন না।"
+            className="input min-h-[70px]"
+            placeholder="বাড়িওয়ালা কেমন আচরণ করেছিল? কোনো নাম লিখবেন না।"
             maxLength={1000}
             value={form.landlordBehavior}
             onChange={(e) => set("landlordBehavior", e.target.value)}
           />
-        </div>
+        </fieldset>
 
-        <div>
-          <label className="text-sm font-medium">বিবরণ</label>
+        {/* Description */}
+        <fieldset className="space-y-2">
+          <legend className="font-semibold">সংক্ষেপে আপনার অভিজ্ঞতা লিখুন</legend>
           <textarea
-            className="input min-h-[120px] mt-1"
-            placeholder="কী ঘটেছিল বিস্তারিত লিখুন। কোনো নাম, ফোন নম্বর বা শনাক্তকারী তথ্য উল্লেখ করবেন না।"
-            required
+            className="input min-h-[120px]"
+            placeholder="কী হয়েছিল? বাড়িওয়ালা বা ম্যানেজমেন্ট কীভাবে বিষয়টি handle করেছিল? অন্য একজন ভাড়াটিয়ার এই বাসাটি নেওয়ার আগে কী জানা উচিত? কোনো নাম, ফোন নম্বর বা শনাক্তকারী তথ্য উল্লেখ করবেন না।"
+            maxLength={2000}
             value={form.description}
             onChange={(e) => set("description", e.target.value)}
           />
-        </div>
+        </fieldset>
+
+        {/* Recommendation */}
+        <fieldset className="space-y-2">
+          <legend className="font-semibold">অন্যদের এই বাসাটি নেওয়ার পরামর্শ দেবেন? <span className="text-xs font-normal text-neutral-400">(ঐচ্ছিক)</span></legend>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(RECOMMENDATION_LABELS).map(([v, l]) => (
+              <Chip key={v} active={form.recommendation === v} onClick={() => set("recommendation", form.recommendation === v ? "" : v)}>{l}</Chip>
+            ))}
+          </div>
+        </fieldset>
 
         <div className="rounded-xl bg-amber-50 dark:bg-amber-900/20 p-3 text-xs text-amber-800 dark:text-amber-200">
-          বেশিরভাগ রিপোর্ট সাথে সাথে প্রকাশিত হয়। তবে কোনো নাম, ফোন নম্বর বা শনাক্তকারী তথ্য থাকলে সেটি একজন মডারেটরের অনুমোদনের জন্য অপেক্ষায় থাকে।
+          ব্যক্তিগত আক্রমণ, হুমকি, অশালীন ভাষা বা অন্যের ব্যক্তিগত তথ্য প্রকাশ করবেন না। বেশিরভাগ রিপোর্ট সাথে সাথে প্রকাশিত হয়; নাম/ফোন থাকলে মডারেটর পর্যালোচনা করবেন।
         </div>
 
         <label className="flex items-start gap-2 text-sm text-neutral-500">
-          <input type="checkbox" className="mt-1" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} />
-          আমি কোনো ব্যক্তির নাম বা পরিচয় উল্লেখ করিনি। আমি বুঝি এটি একটি পাবলিক, অযাচাইকৃত অভিজ্ঞতা।
+          <input type="checkbox" className="mt-1" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} />
+          আমি নিশ্চিত করছি যে এটি আমার নিজের অভিজ্ঞতার ভিত্তিতে লেখা এবং ইচ্ছাকৃতভাবে মিথ্যা তথ্য প্রদান করছি না।
         </label>
 
         <button type="submit" disabled={submitting} className="btn-primary w-full">
-          {submitting ? "জমা হচ্ছে..." : "বেনামী রিপোর্ট জমা দিন →"}
+          {submitting ? "জমা হচ্ছে..." : "অভিজ্ঞতা প্রকাশ করুন"}
         </button>
-        <p className="text-xs text-neutral-400 text-center">
-          জমাটি নিরাপদ সার্ভার এন্ডপয়েন্টের মাধ্যমে যায় এবং মডারেটর অনুমোদন না দেওয়া পর্যন্ত ব্যক্তিগত থাকে।
-        </p>
       </form>
     </div>
   );
