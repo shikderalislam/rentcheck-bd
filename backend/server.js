@@ -1,4 +1,5 @@
 import express from "express";
+import mongoose from "mongoose";
 import dotenv from "dotenv";
 import cors from "cors";
 import helmet from "helmet";
@@ -20,7 +21,6 @@ import landlordDashRoutes from "./routes/landlordDashRoutes.js";
 import translateRoutes from "./routes/translateRoutes.js";
 
 dotenv.config();
-await connectDB();
 
 const app = express();
 
@@ -49,7 +49,10 @@ const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 40, standardHeade
 app.use("/api", globalLimiter);
 app.use("/api/auth", authLimiter);
 
-app.get("/api/health", (req, res) => res.json({ success: true, message: "RentCheck BD API is running" }));
+app.get("/api/health", (req, res) => {
+  const state = ["disconnected", "connected", "connecting", "disconnecting"][mongoose.connection.readyState] || "unknown";
+  res.json({ success: true, message: "RentCheck BD API is running", db: state });
+});
 
 app.use("/api/auth", authRoutes);
 app.use("/api/properties", propertyRoutes);
@@ -65,4 +68,9 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`RentCheck BD API running on port ${PORT}`));
+// Start listening first so the platform sees a live port immediately, then
+// connect to the database (with retry) in the background.
+app.listen(PORT, () => {
+  console.log(`RentCheck BD API running on port ${PORT}`);
+  connectDB();
+});
