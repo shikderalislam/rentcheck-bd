@@ -36,6 +36,13 @@ export function AuthProvider({ children }) {
     return data; // { user, token, verification }
   };
 
+  // Exchanges a Google ID token (from Google Identity Services) for a session.
+  const googleLogin = async (credential) => {
+    const { data } = await api.post("/auth/google", { credential });
+    setUser(data.user);
+    return data.user;
+  };
+
   const logout = async () => {
     await api.post("/auth/logout");
     setUser(null);
@@ -55,7 +62,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, login, register, logout, verifyEmail, resendVerification, refresh: fetchMe }}
+      value={{ user, loading, login, register, googleLogin, logout, verifyEmail, resendVerification, refresh: fetchMe }}
     >
       {children}
     </AuthContext.Provider>

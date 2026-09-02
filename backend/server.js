@@ -22,6 +22,15 @@ import translateRoutes from "./routes/translateRoutes.js";
 
 dotenv.config();
 
+if (!process.env.JWT_SECRET) {
+  console.error(
+    "\n[startup] JWT_SECRET is not set — login/register will fail with " +
+      '"secretOrPrivateKey must have a value".\n' +
+      "  Set it as an environment variable on your host (Render/Railway -> Environment):\n" +
+      "  JWT_SECRET=<a long random string, e.g. `openssl rand -hex 32`>\n"
+  );
+}
+
 const app = express();
 
 // Running behind a reverse proxy (Railway / Render / Fly / nginx / Vercel).

@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate, Link, Navigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import { dashboardPathOf } from "../lib/roles.js";
+import PasswordInput from "../components/PasswordInput.jsx";
+import GoogleSignIn from "../components/GoogleSignIn.jsx";
 
 export default function Register() {
-  const { register, verifyEmail, user, loading: authLoading } = useAuth();
+  const { register, googleLogin, verifyEmail, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ displayName: "", email: "", password: "", role: "tenant" });
   const [error, setError] = useState("");
@@ -32,6 +34,19 @@ export default function Register() {
       setLoading(false);
     }
   };
+
+  const onGoogle = useCallback(
+    async (credential) => {
+      setError("");
+      try {
+        const u = await googleLogin(credential);
+        navigate(dashboardPathOf(u), { replace: true });
+      } catch (err) {
+        setError(err.response?.data?.message || "Google sign-in failed");
+      }
+    },
+    [googleLogin, navigate]
+  );
 
   const oneClickVerify = async () => {
     const token = done?.verification?.devToken;
@@ -87,7 +102,15 @@ export default function Register() {
         </div>
         <div>
           <label className="text-sm font-medium">Password</label>
-          <input className="input mt-1" type="password" minLength={8} required value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} />
+          <div className="mt-1">
+            <PasswordInput
+              minLength={8}
+              required
+              autoComplete="new-password"
+              value={form.password}
+              onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+            />
+          </div>
         </div>
         <div>
           <label className="text-sm font-medium">I am a</label>
@@ -100,6 +123,9 @@ export default function Register() {
           )}
         </div>
         <button type="submit" disabled={loading} className="btn-primary w-full">{loading ? "Creating account..." : "Sign up"}</button>
+
+        <GoogleSignIn onCredential={onGoogle} onError={(e) => setError(e.message)} />
+
         <p className="text-sm text-neutral-500 text-center">
           Already have an account? <Link to="/login" className="text-brand-600 font-medium">Log in</Link>
         </p>

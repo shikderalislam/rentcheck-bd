@@ -1,10 +1,12 @@
 import asyncHandler from "express-async-handler";
 import crypto from "crypto";
 import validator from "validator";
+import { OAuth2Client } from "google-auth-library";
 import User from "../models/User.js";
 import { generateToken, setTokenCookie } from "../utils/generateToken.js";
 
 const isProd = () => process.env.NODE_ENV === "production";
+const googleClient = process.env.GOOGLE_CLIENT_ID ? new OAuth2Client(process.env.GOOGLE_CLIENT_ID) : null;
 
 function newVerificationToken() {
   return crypto.randomBytes(32).toString("hex");
@@ -125,6 +127,65 @@ export const resendVerification = asyncHandler(async (req, res) => {
   const verification = issueVerification(req.user);
   await req.user.save();
   res.json({ success: true, verification });
+});
+
+// @route GET /api/auth/config  (public — tells the frontend which sign-in methods are available)
+export const authConfig = asyncHandler(async (req, res) => {
+  res.json({ success: true, googleClientId: process.env.GOOGLE_CLIENT_ID || null });
+});
+
+// @route POST /api/auth/google   Body: { credential }  (Google ID token from Google Identity Services)
+export const googleAuth = asyncHandler(async (req, res) => {
+  if (!googleClient) {
+    res.status(503);
+    throw new Error("Google sign-in is not configured on the server");
+  }
+  const { credential } = req.body;
+  if (!credential) {
+    res.status(400);
+    throw new Error("Missing Google credential");
+  }
+
+  let payload;
+  try {
+    const ticket = await googleClient.verifyIdToken({ idToken: credential, audience: process.env.GOOGLE_CLIENT_ID });
+    payload = ticket.getPayload();
+  } catch {
+    res.status(401);
+    throw new Error("Could not verify your Google sign-in");
+  }
+  if (!payload?.email || payload.email_verified === false) {
+    res.status(401);
+    throw new Error("Your Google account email is not verified");
+  }
+
+  const email = payload.email.toLowerCase();
+  let user = await User.findOne({ email }).select("+passwordHash");
+  if (user) {
+    if (user.isSuspended || user.isDeleted) {
+      res.status(403);
+      throw new Error("This account is unavailable");
+    }
+    if (!user.isEmailVerified) user.isEmailVerified = true;
+    if (!user.avatarUrl && payload.picture) user.avatarUrl = payload.picture;
+  } else {
+    user = new User({
+      displayName: payload.name || email.split("@")[0],
+      email,
+      passwordHash: crypto.randomBytes(24).toString("hex"), // random — this account signs in with Google
+      role: "tenant",
+      isEmailVerified: true,
+      avatarUrl: payload.picture || "",
+      trustLevel: 1,
+    });
+  }
+  user.lastLoginAt = new Date();
+  user.loginCount = (user.loginCount || 0) + 1;
+  await user.save();
+
+  const token = generateToken(user._id, user.role);
+  setTokenCookie(res, token);
+  res.json({ success: true, user: user.toPublicJSON(), token });
 });
 
 // @route POST /api/auth/logout
